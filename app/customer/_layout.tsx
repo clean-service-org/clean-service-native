@@ -49,6 +49,13 @@ const _Layout = () => {
           headerTitleStyle: { fontWeight: 'bold', fontSize: 20 },
         }}
       />
+      <Stack.Screen
+        name="verify/index"
+        options={{
+          title: '',
+          headerTitleStyle: { fontWeight: 'bold', fontSize: 20 },
+        }}
+      />
     </Stack>
   );
 };
