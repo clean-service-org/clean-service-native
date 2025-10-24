@@ -1,3 +1,4 @@
+import { Link } from 'expo-router';
 import { Text, View } from 'react-native';
 import Button from '../components/Button';
 import InputWithLabel from '../components/Input';
@@ -10,6 +11,9 @@ export default function Index() {
       </Text>
       <Button onPress={() => alert('Button Pressed!')}>Custom Button</Button>
       <InputWithLabel placeholder="Enter text" label="paso peso" />
+      <Link href="/customer/login">
+        <Text className="text-blue-500">Go to Login</Text>
+      </Link>
     </View>
   );
 }
