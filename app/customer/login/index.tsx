@@ -1,84 +1,78 @@
 import Button from '@/components/Button';
-import BottomSheet, {
-  BottomSheetBackdrop,
-  BottomSheetView,
-} from '@gorhom/bottom-sheet';
-import React, { useCallback, useMemo, useRef } from 'react';
-import { Image, Pressable, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 const LoginScreen = () => {
-  const bottomSheetRef = useRef<BottomSheet>(null);
-
-  const snapPoints = useMemo(() => ['40%'], []);
-
-  const backDrop = useCallback(
-    (props: any) => (
-      <BottomSheetBackdrop
-        {...props}
-        appearsOnIndex={0}
-        disappearsOnIndex={-1}
-      />
-    ),
-    [],
-  );
-
-  const openBottomSheet = useCallback(() => {
-    bottomSheetRef.current?.expand();
-  }, []);
-
-  const closeBottomSheet = useCallback(() => {
-    bottomSheetRef.current?.close();
-  }, []);
+  const [showPassword, setShowPassword] = useState(false);
+  const router = useRouter();
 
   return (
-    <View className="flex-1 bg-[#fff]">
-      <View className="flex-1 justify-center items-center">
-        <View className="bg-white/90 rounded-2xl px-6 w-11/12 items-center">
-          <Button onPress={openBottomSheet}>Log in/Create account</Button>
+    <View className="flex-1 bg-white px-6 pt-8">
+      {/* Heading */}
+      <View className="mb-8">
+        <Text className="text-2xl font-bold text-[#1a1a1a]">Welcome back,</Text>
+        <Text className="text-gray-500">Please login</Text>
+      </View>
+
+      {/* Phone Number Input */}
+      <View className="mb-5">
+        <Text className="text-sm font-semibold text-gray-700 mb-2">
+          Phone number
+        </Text>
+        <View className="flex-row items-center border border-gray-300 rounded-xl px-3 py-3 h-14">
+          <Text className="text-lg mr-2">🇻🇳</Text>
+          <Text className="text-gray-700 mr-2">+84</Text>
+          <TextInput
+            placeholder="Enter your phone number"
+            keyboardType="number-pad"
+            className="flex-1 text-gray-700"
+          />
         </View>
       </View>
-      <BottomSheet
-        ref={bottomSheetRef}
-        snapPoints={snapPoints}
-        index={-1}
-        backdropComponent={backDrop}
-      >
-        <BottomSheetView className="px-16 py-4">
-          <Text className="text-lg font-semibold text-center mb-4">
-            Login or register
-          </Text>
-          <Button className="mb-3 rounded-xl">Log in</Button>
-          <Button
-            className="rounded-xl bg-[#f5f5f5]"
-            textClassName="text-blue-400"
-          >
-            Register
-          </Button>
-          <View className="flex justify-center items-center gap-4 mt-4">
-            <Text className="font-medium">Or login with</Text>
-            <View className="flex flex-row gap-12 justify-around items-center">
-              <Pressable className="flex items-center justify-center p-3 rounded-2xl border-[0.5px]">
-                <Image
-                  source={require('@/assets/icons/facebook-icon.png')}
-                  className="w-8 h-8 rounded-full"
-                />
-              </Pressable>
-              <Pressable className="flex items-center justify-center p-3 rounded-2xl border-[0.5px]">
-                <Image
-                  source={require('@/assets/icons/google-icon.png')}
-                  className="w-8 h-8 rounded-full"
-                />
-              </Pressable>
-              <Pressable className="flex items-center justify-center p-3 rounded-2xl border-[0.5px]">
-                <Image
-                  source={require('@/assets/icons/github-icon.png')}
-                  className="w-8 h-8 rounded-full"
-                />
-              </Pressable>
-            </View>
-          </View>
-        </BottomSheetView>
-      </BottomSheet>
+
+      {/* Password Input */}
+      <View className="mb-8">
+        <Text className="text-sm font-semibold text-gray-700 mb-2">
+          Password
+        </Text>
+        <View className="flex-row items-center border border-gray-300 rounded-xl px-3 py-2.5 h-14">
+          <TextInput
+            placeholder="Enter your password"
+            secureTextEntry={!showPassword}
+            className="flex-1 text-gray-700"
+            textAlignVertical="center"
+            style={{ textAlignVertical: 'center', paddingVertical: 0 }}
+          />
+          <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+            <Ionicons
+              name={showPassword ? 'eye-off' : 'eye'}
+              size={20}
+              color="gray"
+            />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Login Button */}
+      <Button className="rounded-xl">
+        <Text className=" text-center text-base font-semibold">Log in</Text>
+      </Button>
+
+      {/* Footer Links */}
+      <View className="justify-end px-5 pt-8 mb-10 flex-1">
+        <View className="flex-row justify-center mb-3">
+          <Text className="text-gray-500">Do not have an account? </Text>
+          <TouchableOpacity onPress={() => router.push('/customer/signup')}>
+            <Text className="text-[#1A78F2] font-semibold">Create Account</Text>
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity onPress={() => {}}>
+          <Text className="text-[#1A78F2] text-center">Forgot password</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };

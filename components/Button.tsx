@@ -16,9 +16,9 @@ export default function Button({
   return (
     <Pressable
       onPress={onPress}
-      className={`flex bg-[#1A78F2] px-8 py-4 rounded-lg ${className}`}
+      className={`flex justify-center items-center bg-[#1A78F2] px-8 py-4 rounded-lg ${className}`}
     >
-      <Text className={`text-center font-bold text-white ${textClassName}`}>
+      <Text className={`text-center font-bold ${textClassName} text-white `}>
         {children}
       </Text>
     </Pressable>

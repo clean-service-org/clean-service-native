@@ -11,8 +11,8 @@ export default function Index() {
       </Text>
       <Button onPress={() => alert('Button Pressed!')}>Custom Button</Button>
       <InputWithLabel placeholder="Enter text" label="paso peso" />
-      <Link href="/customer/login">
-        <Text className="text-blue-500">Go to Login</Text>
+      <Link href="/home">
+        <Text className="text-blue-500">Go to Home</Text>
       </Link>
     </View>
   );
