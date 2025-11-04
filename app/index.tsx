@@ -11,10 +11,10 @@ export default function Index() {
       </Text>
       <Button onPress={() => alert('Button Pressed!')}>Custom Button</Button>
       <InputWithLabel placeholder="Enter text" label="paso peso" />
-      <Link href="/home">
+      <Link href="/customer/(tabs)">
         <Text className="text-blue-500">Go to Home</Text>
       </Link>
-      <Link href="/customer/verify">
+      <Link href="/customer/(auth)/verify">
         <Text className="text-blue-500">Go to Verify</Text>
       </Link>
     </View>
