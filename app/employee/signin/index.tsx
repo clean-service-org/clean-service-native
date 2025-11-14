@@ -1,12 +1,12 @@
-import { Text, View } from 'react-native';
-import InputWithLabel from "@/components/Input";
 import Button from "@/components/Button";
-import { useForm, Controller } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
+import InputWithLabel from "@/components/Input";
 import { EmployeeSignInFormSchema } from "@/schemas/employeeSignInForm.schema";
-import {Link} from "expo-router";
-import {Image} from "expo-image";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Image } from "expo-image";
+import { Link } from "expo-router";
+import { Controller, useForm } from "react-hook-form";
+import { Text, View } from 'react-native';
+import { z } from "zod";
 
 type FormValues = z.infer<typeof EmployeeSignInFormSchema>;
 
@@ -14,6 +14,7 @@ export default function SignInPage() {
     const {
         control,
         handleSubmit,
+        formState: { errors }
     } = useForm<FormValues>({
         resolver: zodResolver(EmployeeSignInFormSchema),
         mode: "onSubmit",
@@ -39,13 +40,13 @@ export default function SignInPage() {
 
             <Controller control={control} name={"phoneNumber"}
                         render={({ field: { onChange, value } }) => (
-                            <InputWithLabel value={value} onChangeText={(value) => onChange(value)} placeholder={"+84XXXXXXXXX"} label={"Phone Number"}/>
+                            <InputWithLabel value={value} onChangeText={(value) => onChange(value)} placeholder={"+84XXXXXXXXX"} label={"Phone Number"} errorMessage={errors.phoneNumber?.message}/>
                         )}
             />
 
             <Controller control={control} name={"password"}
                         render={({ field: { onChange, value } }) => (
-                            <InputWithLabel value={value} onChangeText={(value) => onChange(value)} placeholder={"At least 6 letters"} label={"Password"}/>
+                            <InputWithLabel value={value} onChangeText={(value) => onChange(value)} placeholder={"At least 6 letters"} label={"Password"} errorMessage={errors.password?.message}/>
                         )}
             />
 

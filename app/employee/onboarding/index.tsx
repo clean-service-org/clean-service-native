@@ -1,18 +1,23 @@
 import Button from "@/components/Button";
+import { useRouter } from "expo-router";
+import { useState } from "react";
+import { Dimensions, Image, Text, View } from 'react-native';
 import Carousel from 'react-native-reanimated-carousel';
-import {Dimensions, Image, View, Text} from 'react-native';
-import {useState} from "react";
-import {useRouter} from "expo-router";
+
+interface OnboardingItem {
+    id: string;
+    source: any;
+}
 
 const {width} = Dimensions.get('window');
 const data = [
     {id: '1', source: require('@/assets/images/onboarding-carousel/onboarding-carousel-1.png')},
     {id: '2', source: require('@/assets/images/onboarding-carousel/onboarding-carousel-2.png')},
     {id: '3', source: require('@/assets/images/onboarding-carousel/onboarding-carousel-3.png')},
-];
+] as OnboardingItem[];
 
 export default function EmployeeOnboardingPage() {
-    const [index, setIndex] = useState(0);
+    const [index, setIndex] = useState<Number>(0);
 
     const router = useRouter()
 
@@ -25,7 +30,7 @@ export default function EmployeeOnboardingPage() {
                 loop
                 onSnapToItem={setIndex}
                 autoPlay
-                renderItem={({item}) => (
+                renderItem={({ item }: { item:OnboardingItem }) => (
                     <Image source={item.source} style={{width: '100%', height: '100%'}}/>
                 )}
             />
@@ -45,7 +50,9 @@ export default function EmployeeOnboardingPage() {
                 ))}
             </View>
 
-            <View className={"flex-col justify-center items-center mt-10 gap-4 w-full"}>
+            <View className="h-px w-full bg-gray-300/50 mt-5" />
+
+            <View className={"flex-col justify-center items-center mt-5 gap-4 w-full"}>
                 <Button
                     onPress={() => {
                         router.push("/employee/signup")
