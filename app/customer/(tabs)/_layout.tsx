@@ -1,9 +1,9 @@
+import ActivityIcon from '@/components/icons/Activity';
+import HomeIcon from '@/components/icons/Home';
+import MessageIcon from '@/components/icons/Message';
+import UserIcon from '@/components/icons/User';
 import { Tabs } from 'expo-router';
 import React from 'react';
-import ActivityIcon from '../../../components/icons/Activity';
-import HomeIcon from '../../../components/icons/Home';
-import MessageIcon from '../../../components/icons/Message';
-import UserIcon from '../../../components/icons/User';
 
 const _layout = () => {
   return (

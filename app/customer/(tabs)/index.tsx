@@ -1,3 +1,5 @@
+import BannerCarousel from '@/app/customer/components/Banner';
+import ServiceGrid from '@/app/customer/components/ServiceGrid';
 import Button from '@/components/Button';
 import BottomSheet, {
   BottomSheetBackdrop,
@@ -5,7 +7,14 @@ import BottomSheet, {
 } from '@gorhom/bottom-sheet';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useRef } from 'react';
-import { Image, Pressable, Text, View } from 'react-native';
+import {
+  Image,
+  Pressable,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 const HomeScreen = () => {
   const router = useRouter();
@@ -34,12 +43,70 @@ const HomeScreen = () => {
   }, []);
 
   return (
-    <View className="flex-1 bg-[#fff]">
-      <View className="flex-1 justify-center items-center">
-        <View className="bg-white/90 rounded-2xl px-6 w-11/12 items-center">
-          <Button onPress={openBottomSheet}>Log in/Create account</Button>
+    <View className="flex-1 bg-white">
+      <ScrollView>
+        {/* Header */}
+        <View className="bg-blue-400 pb-6 px-5 pt-16">
+          <View className="flex-row justify-between items-center">
+            <Text className="text-white text-lg font-semibold">
+              Hi Huy Trương Tuấn
+            </Text>
+            <Image
+              source={{
+                uri: 'https://cdn-icons-png.flaticon.com/512/197/197374.png',
+              }} // icon UK
+              className="w-6 h-6"
+            />
+          </View>
+
+          {/* <Button onPress={openBottomSheet}>Log in/Create account</Button> */}
+          <View className="bg-white mt-3 p-4 rounded-2xl shadow-sm">
+            <Text className="text-blue-500 font-semibold text-base leading-5">
+              Explore the whole range of home services we are offering today!
+            </Text>
+
+            <View className="flex-row mt-4">
+              {/* Left: Balance */}
+              <TouchableOpacity className="flex-1 flex-row items-center justify-between pr-3">
+                <View className="flex-row items-center">
+                  <View className="bg-yellow-400 w-8 h-8 rounded-full items-center justify-center mr-2">
+                    <Text className="text-white text-lg font-bold">₫</Text>
+                  </View>
+                  <Text className="text-gray-800 text-base font-semibold">
+                    0 đ
+                  </Text>
+                </View>
+                <Text className="text-gray-300 text-lg">›</Text>
+              </TouchableOpacity>
+
+              {/* Divider */}
+              <View className="w-px h-full bg-gray-200 mx-2" />
+
+              {/* Right: bPoints */}
+              <TouchableOpacity className="flex-1 flex-row items-center justify-between pl-3">
+                <View className="flex-row items-center">
+                  <View className="bg-orange-400 w-8 h-8 rounded-full items-center justify-center mr-2">
+                    <Text className="text-white text-base font-bold">👤</Text>
+                  </View>
+                  <Text className="text-gray-800 text-base font-semibold">
+                    0 bPoints
+                  </Text>
+                </View>
+                <Text className="text-gray-300 text-lg">›</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
-      </View>
+
+        {/* Banner */}
+        <View className="px-0">
+          <BannerCarousel />
+        </View>
+
+        {/* Service Section */}
+        <ServiceGrid />
+      </ScrollView>
+
       <BottomSheet
         ref={bottomSheetRef}
         snapPoints={snapPoints}
