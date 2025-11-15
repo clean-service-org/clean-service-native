@@ -1,0 +1,124 @@
+[
+  {
+    "id": "q1",
+    "type": "single",
+    "question": "Have you done professional housekeeping or paid cleaning work before?",
+    "required": true,
+    "options": [
+      { "id": "yes", "label": "Yes" },
+      { "id": "no", "label": "No" }
+    ],
+    "weight": 20
+  },
+  {
+    "id": "q2",
+    "type": "single",
+    "question": "How many years of professional cleaning experience do you have?",
+    "required": false,
+    "options": [
+      { "id": "none", "label": "None" },
+      { "id": "<1", "label": "<1 year" },
+      { "id": "1-3", "label": "1–3 years" },
+      { "id": "3-5", "label": "3–5 years" },
+      { "id": "5+", "label": "5+ years" }
+    ],
+    "weight": 10
+  },
+  {
+    "id": "q3",
+    "type": "multi",
+    "question": "Which tasks can you perform? (select all that apply)",
+    "options": [
+      { "id": "bath", "label": "Bathroom deep clean" },
+      { "id": "kitchen", "label": "Kitchen deep clean" },
+      { "id": "vacuum", "label": "Vacuum & floor care" },
+      { "id": "laundry", "label": "Laundry" },
+      { "id": "bed", "label": "Bed making & linen" },
+      { "id": "window", "label": "Window/Glass cleaning" },
+      { "id": "iron", "label": "Ironing" }
+    ],
+    "weight": 15
+  },
+  {
+    "id": "q4",
+    "type": "rating",
+    "question": "Rate your confidence performing deep-clean tasks (1-5)",
+    "required": true,
+    "weight": 10
+  },
+  {
+    "id": "q5",
+    "type": "single",
+    "question": "Scenario: A client asks you to use a strong chemical product you don't recognize — what do you do?",
+    "required": true,
+    "options": [
+      { "id": "use", "label": "Use it as instructed" },
+      { "id": "ask", "label": "Ask for the label and PPE (preferred)" },
+      { "id": "refuse", "label": "Refuse and ask supervisor" },
+      { "id": "gloves", "label": "Use gloves but proceed" }
+    ],
+    "weight": 20,
+    "preferred": "ask"
+  },
+  {
+    "id": "q9",
+    "type": "single",
+    "question": "You arrive and the client isn't home and doesn't answer — what do you do?",
+    "required": true,
+    "options": [
+      {
+        "id": "call_wait",
+        "label": "Call the client and wait a reasonable time"
+      },
+      { "id": "leave_note", "label": "Leave a note and leave" },
+      { "id": "enter", "label": "Enter if the door is unlocked" },
+      {
+        "id": "contact_support",
+        "label": "Contact support/supervisor for instruction"
+      }
+    ],
+    "weight": 5,
+    "preferred": "call_wait"
+  },
+  {
+    "id": "q10",
+    "type": "single",
+    "question": "The client asks you to do extra unpaid tasks beyond the booked service — how do you respond?",
+    "required": true,
+    "options": [
+      { "id": "do_it", "label": "Do them to keep the client happy" },
+      {
+        "id": "ask_to_book",
+        "label": "Politely ask them to book or pay for extras (preferred)"
+      },
+      { "id": "refuse", "label": "Refuse outright" },
+      { "id": "small_extra", "label": "Do small extras but not major ones" }
+    ],
+    "weight": 5,
+    "preferred": "ask_to_book"
+  },
+  {
+    "id": "q11",
+    "type": "single",
+    "question": "You accidentally break a small fragile item in the client's home — what do you do?",
+    "required": true,
+    "options": [
+      { "id": "hide", "label": "Hide it and hope they don't notice" },
+      {
+        "id": "inform",
+        "label": "Inform the client and apologize (preferred)"
+      },
+      { "id": "replace", "label": "Try to replace it without telling" },
+      { "id": "wait", "label": "Wait to see if they notice" }
+    ],
+    "weight": 5,
+    "preferred": "inform"
+  },
+  {
+    "id": "q8",
+    "type": "text",
+    "question": "Is there anything we should know about your schedule or health restrictions? (optional)",
+    "required": false,
+    "weight": 0
+  }
+]
