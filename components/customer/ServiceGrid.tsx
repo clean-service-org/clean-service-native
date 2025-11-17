@@ -1,16 +1,19 @@
+import { useRouter } from 'expo-router';
 import React from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
 const ServiceGrid = () => {
+  const router = useRouter();
+
   const services = [
-    { title: 'Cleaning\non-demand', icon: '🧹', isNew: false },
-    { title: 'Cleaning\nmonthly', icon: '📋', isNew: false },
-    { title: 'Deep\nCleaning', icon: '🧴', isNew: false },
-    { title: 'Home moving', icon: '🚚', isNew: true },
-    { title: 'Industrial\nCleaning', icon: '🏗️', isNew: true },
-    { title: 'A/C Cleaning', icon: '❄️', isNew: false },
-    { title: 'Upholstery\nService', icon: '🛋️', isNew: false },
-    { title: 'Child Care', icon: '👶', isNew: false },
+    { title: 'Cleaning\non-demand', icon: '🧹', isNew: false, id: 1 },
+    { title: 'Cleaning\nmonthly', icon: '📋', isNew: false, id: 2 },
+    { title: 'Deep\nCleaning', icon: '🧴', isNew: false, id: 3 },
+    { title: 'Home moving', icon: '🚚', isNew: true, id: 4 },
+    { title: 'Industrial\nCleaning', icon: '🏗️', isNew: true, id: 5 },
+    { title: 'A/C Cleaning', icon: '❄️', isNew: false, id: 6 },
+    { title: 'Upholstery\nService', icon: '🛋️', isNew: false, id: 7 },
+    { title: 'Child Care', icon: '👶', isNew: false, id: 8 },
   ];
 
   return (
@@ -35,6 +38,9 @@ const ServiceGrid = () => {
             key={index}
             className="w-[23%] mb-4 relative"
             activeOpacity={0.7}
+            onPress={() => {
+              router.push(`/customer/service/${service.id}`);
+            }}
           >
             {/* NEW Badge */}
             {service.isNew && (

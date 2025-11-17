@@ -1,6 +1,6 @@
-import BannerCarousel from '@/app/customer/components/Banner';
-import ServiceGrid from '@/app/customer/components/ServiceGrid';
 import Button from '@/components/Button';
+import BannerCarousel from '@/components/customer/Banner';
+import ServiceGrid from '@/components/customer/ServiceGrid';
 import BottomSheet, {
   BottomSheetBackdrop,
   BottomSheetView,
