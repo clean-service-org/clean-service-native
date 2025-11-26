@@ -8,8 +8,8 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <BottomSheetModalProvider>
         <Stack>
-          <Stack.Screen name="customer" options={{ headerShown: false }} />
           <Stack.Screen name="index" options={{ headerShown: true }} />
+          <Stack.Screen name="customer" options={{ headerShown: false }} />
           <Stack.Screen name="employee" options={{ headerShown: false }} />
         </Stack>
       </BottomSheetModalProvider>

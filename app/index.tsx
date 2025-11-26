@@ -1,8 +1,7 @@
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { Text, View } from 'react-native';
 import Button from '../components/Button';
 import InputWithLabel from '../components/Input';
-import { useRouter } from 'expo-router';
 
 export default function Index() {
     const router = useRouter();
@@ -20,6 +19,9 @@ export default function Index() {
       </Link>
       <Link href="/customer/verify">
         <Text className="text-blue-500">Go to Verify</Text>
+      </Link>
+      <Link href="/employee/home">
+        <Text className="text-blue-500">Go to Employee Home</Text>
       </Link>
     </View>
   );

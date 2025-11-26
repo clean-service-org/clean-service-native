@@ -38,6 +38,7 @@ const HomeScreen = () => {
       <View className="flex-1 justify-center items-center">
         <View className="bg-white/90 rounded-2xl px-6 w-11/12 items-center">
           <Button onPress={openBottomSheet}>Log in/Create account</Button>
+          
         </View>
       </View>
       <BottomSheet
