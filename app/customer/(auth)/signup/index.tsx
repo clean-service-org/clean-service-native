@@ -1,10 +1,21 @@
 import InputWithLabel from '@/components/Input';
 import Checkbox from 'expo-checkbox';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Image, Pressable, Text, TouchableOpacity, View } from 'react-native';
 
 const Register = () => {
   const [isChecked, setIsChecked] = useState(false);
+  const router = useRouter();
+
+  const handleContinue = () => {
+    if (!isChecked) {
+      alert('Please agree with Terms & Policy to continue');
+      return;
+    }
+    // TODO: validate + call API đăng ký, gửi OTP
+    router.push('/customer/(auth)/verify');
+  };
 
   return (
     <View className="flex-1 bg-white">
@@ -23,16 +34,7 @@ const Register = () => {
 
           {/* Phone number input */}
           <View>
-            <InputWithLabel
-              label="Phone number"
-              placeholder="362621210"
-              // leftIcon={
-              //   <View className="flex-row items-center gap-2 ml-3">
-              //     <Text className="text-lg">🇻🇳</Text>
-              //     <Text className="text-gray-700">+84</Text>
-              //   </View>
-              // }
-            />
+            <InputWithLabel label="Phone number" placeholder="362621210" />
           </View>
 
           <InputWithLabel label="Email" placeholder="johndoe@gmail.com" />
@@ -61,6 +63,7 @@ const Register = () => {
           </TouchableOpacity>
 
           <Pressable
+            onPress={handleContinue}
             className={`flex items-center justify-center rounded-lg ${
               isChecked ? 'bg-blue-500' : 'bg-gray-300'
             } w-16 h-16`}

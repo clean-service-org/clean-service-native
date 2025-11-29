@@ -120,7 +120,7 @@ const HomeScreen = () => {
           <Button
             className="mb-3 rounded-xl"
             onPress={() => {
-              router.push('/customer/login');
+              router.push('/customer/(auth)/login');
               closeBottomSheet();
             }}
           >
@@ -130,7 +130,7 @@ const HomeScreen = () => {
             className="rounded-xl bg-[#f5f5f5]"
             textClassName="text-[#1a78f2]"
             onPress={() => {
-              router.push('/customer/signup');
+              router.push('/customer/(auth)/signup');
               closeBottomSheet();
             }}
           >

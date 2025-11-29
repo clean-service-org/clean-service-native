@@ -1,4 +1,5 @@
-import { useLocalSearchParams } from 'expo-router';
+import Button from '@/components/Button';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
 import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 
@@ -6,6 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 
 const ServiceDetail = () => {
   const { id } = useLocalSearchParams();
+  const router = useRouter();
 
   // Dữ liệu mẫu - bạn có thể thay bằng API call
   const serviceData = {
@@ -103,14 +105,17 @@ const ServiceDetail = () => {
         </ScrollView>
 
         <View className="px-5 pb-6 pt-4">
-          <TouchableOpacity
-            className="bg-[#1a78f3] rounded-2xl py-4 mb-2 items-center shadow-lg active:bg-[#1566d6]"
-            activeOpacity={0.8}
+          <Button
+            className="rounded-2xl"
+            onPress={() =>
+              router.push({
+                pathname: '/customer/booking',
+                params: { id },
+              })
+            }
           >
-            <Text className="text-white text-base font-bold">
-              Start the experience
-            </Text>
-          </TouchableOpacity>
+            Start the experience
+          </Button>
         </View>
       </View>
     </View>
