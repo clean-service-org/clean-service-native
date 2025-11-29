@@ -56,7 +56,14 @@ const LoginScreen = () => {
       </View>
 
       {/* Login Button */}
-      <Button className="rounded-xl">
+      <Button
+        className="rounded-xl"
+        onPress={() => {
+          // TODO: validate + call API đăng nhập
+          // Sau khi login thành công thì vào tab chính
+          router.replace('/customer');
+        }}
+      >
         <Text className=" text-center text-base font-semibold">Log in</Text>
       </Button>
 

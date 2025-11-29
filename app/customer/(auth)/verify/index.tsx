@@ -29,7 +29,8 @@ const VerifyPhoneScreen = () => {
     const code = otp.join('');
     if (code.length === 6) {
       console.log('Verify code:', code);
-      router.push('/home'); // đổi route theo ý bạn
+      // TODO: call API verify OTP
+      router.replace('/customer');
     } else {
       alert('Please enter the 6-digit code');
     }
