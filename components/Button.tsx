@@ -5,6 +5,7 @@ interface Props {
   onPress?: () => void;
   className?: string;
   textClassName?: string;
+  disabled?: boolean;
 }
 
 export default function Button({
@@ -12,11 +13,13 @@ export default function Button({
   onPress,
   className,
   textClassName,
+  disabled = false,
 }: Props) {
   return (
     <Pressable
       onPress={onPress}
-      className={`flex justify-center items-center bg-[#1A78F2] px-8 py-4 rounded-lg ${className}`}
+      disabled={disabled}
+      className={`flex justify-center items-center bg-[#1A78F2] px-8 py-4 rounded-lg ${disabled ? 'opacity-50' : ''} ${className}`}
     >
       <Text className={`text-center font-bold ${textClassName} text-white `}>
         {children}
