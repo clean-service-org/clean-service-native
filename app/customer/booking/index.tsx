@@ -3,7 +3,7 @@ import InputWithLabel from '@/components/Input';
 import Constants from 'expo-constants';
 import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -43,7 +43,7 @@ const BookingScreen = () => {
   const [paymentMethod, setPaymentMethod] = useState<string>('Cash');
 
   // Map states
-  const [region, setRegion] = useState(DEFAULT_REGION);
+  const mapRef = useRef<MapView>(null);
   const [markerCoords, setMarkerCoords] = useState({
     latitude: DEFAULT_REGION.latitude,
     longitude: DEFAULT_REGION.longitude,
@@ -62,14 +62,16 @@ const BookingScreen = () => {
 
       if (data.status === 'OK' && data.results.length > 0) {
         const location = data.results[0].geometry.location;
-        const newRegion = {
-          latitude: location.lat,
-          longitude: location.lng,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        };
-        setRegion(newRegion);
         setMarkerCoords({ latitude: location.lat, longitude: location.lng });
+
+        // Animate camera to new location
+        mapRef.current?.animateCamera({
+          center: {
+            latitude: location.lat,
+            longitude: location.lng,
+          },
+          zoom: 16,
+        });
       } else {
         alert('Could not find the address. Please try another address.');
       }
@@ -91,16 +93,18 @@ const BookingScreen = () => {
       }
 
       const location = await Location.getCurrentPositionAsync({});
-      const newRegion = {
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      };
-      setRegion(newRegion);
       setMarkerCoords({
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
+      });
+
+      // Animate camera to current location
+      mapRef.current?.animateCamera({
+        center: {
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        },
+        zoom: 16,
       });
 
       // Reverse geocode to get address
@@ -207,10 +211,10 @@ const BookingScreen = () => {
           {/* Google Map */}
           <View className="mb-6 rounded-2xl overflow-hidden border border-gray-200">
             <MapView
+              ref={mapRef}
               provider={PROVIDER_GOOGLE}
               style={{ height: 250 }}
-              region={region}
-              onRegionChangeComplete={setRegion}
+              initialRegion={DEFAULT_REGION}
             >
               <Marker
                 coordinate={markerCoords}
