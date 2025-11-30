@@ -23,6 +23,9 @@ export default function Index() {
       <Link href="/employee/home">
         <Text className="text-blue-500">Go to Employee Home</Text>
       </Link>
+      <Link href="/task/1/accept">
+        <Text className="text-blue-500">Go to Employee Home</Text>
+      </Link>
     </View>
   );
 }
