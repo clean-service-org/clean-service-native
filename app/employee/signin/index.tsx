@@ -1,13 +1,12 @@
+import Logo from '@/assets/images/Logo.svg';
 import Button from "@/components/Button";
 import InputWithLabel from "@/components/Input";
 import { EmployeeSignInFormSchema } from "@/schemas/employeeSignInForm.schema";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Image } from "expo-image";
 import { Link } from "expo-router";
 import { Controller, useForm } from "react-hook-form";
 import { Text, View } from 'react-native';
 import { z } from "zod";
-
 type FormValues = z.infer<typeof EmployeeSignInFormSchema>;
 
 export default function SignInPage() {
@@ -34,7 +33,7 @@ export default function SignInPage() {
         <View className="flex flex-col flex-1 justify-start items-center pt-20 px-7 bg-background">
 
             <View className={"flex-col justify-center items-center mb-10 gap-2"}>
-                <Image source={require('@/assets/images/Logo.svg')} style={{ width: 113.65, height: 45 }} />
+                <Logo width={113.65} height={45} />
                 <Text className="text-[#303030] text-right text-[12px] italic font-light leading-normal tracking-[0.036px]">For Cleaner</Text>
             </View>
 
