@@ -1,28 +1,34 @@
 import Button from '@/components/Button';
 import InputWithLabel from '@/components/Input';
+import { API_ENDPOINTS, apiCall } from '@/config/api';
+import { CreateBookingRequest } from '@/types/booking.types';
+import { ServiceType } from '@/types/service.types';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import Constants from 'expo-constants';
 import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useMemo, useRef, useState } from 'react';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Linking,
+  Modal,
+  Platform,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const ADD_ONS = [
-  { id: 'cooking', label: 'Cooking', price: 50000 },
-  { id: 'ironing', label: 'Ironing', price: 50000 },
-];
-
-const OPTIONS = [{ id: 'pet', label: 'House with pet', price: 30000 }];
-
-const DURATIONS = [
-  { id: '2h', label: '2 hours', price: 150000 },
-  { id: '4h', label: '4 hours', price: 300000 },
-];
-
-const PAYMENT_METHODS = ['Cash', 'Momo', 'ZaloPay', 'Credit Card'];
+const PAYMENT_METHODS = ['Cash', 'Momo', 'ZaloPay'];
 
 const GOOGLE_API_KEY = Constants.expoConfig?.extra?.GOOGLE_MAP_KEY;
+
+// Hardcoded customer ID as requested
+const CUSTOMER_ID = 'user_2np2lwmeO5VzPQTLKeaYgCFPhnF';
 
 // Mock coordinates cho Hồ Chí Minh City
 const DEFAULT_REGION = {
@@ -36,19 +42,63 @@ const BookingScreen = () => {
   const { id } = useLocalSearchParams();
   const router = useRouter();
 
+  // Service data
+  const [service, setService] = useState<ServiceType | null>(null);
+  const [loadingService, setLoadingService] = useState(true);
+
+  // Form state
   const [address, setAddress] = useState('');
-  const [durationId, setDurationId] = useState<string>('2h');
-  const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
-  const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
+  const [selectedDuration, setSelectedDuration] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<string>('Cash');
 
-  // Map states
+  // Date/Time state
+  const [scheduledDate, setScheduledDate] = useState(new Date());
+  const [startTime, setStartTime] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showStartTimePicker, setShowStartTimePicker] = useState(false);
+
+  // Room counts
+  const [bedroomCount, setBedroomCount] = useState(0);
+  const [bathroomCount, setBathroomCount] = useState(0);
+  const [kitchenCount, setKitchenCount] = useState(0);
+  const [livingRoomCount, setLivingRoomCount] = useState(0);
+  const [specialRequirements, setSpecialRequirements] = useState('');
+
+  // Loading and map states
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const mapRef = useRef<MapView>(null);
   const [markerCoords, setMarkerCoords] = useState({
     latitude: DEFAULT_REGION.latitude,
     longitude: DEFAULT_REGION.longitude,
   });
   const [isGeocoding, setIsGeocoding] = useState(false);
+
+  // Fetch service details
+  useEffect(() => {
+    if (id) {
+      fetchServiceDetail();
+    }
+  }, [id]);
+
+  const fetchServiceDetail = async () => {
+    try {
+      setLoadingService(true);
+      const response = await apiCall(
+        API_ENDPOINTS.service.typeById(id as string),
+      );
+      setService(response.data);
+
+      // Set default duration if available
+      if (response.data.durationPrice.length > 0) {
+        setSelectedDuration(response.data.durationPrice[0].id);
+      }
+    } catch (error) {
+      console.error('Error fetching service:', error);
+      Alert.alert('Error', 'Could not load service details');
+    } finally {
+      setLoadingService(false);
+    }
+  };
 
   // Geocode address to coordinates
   const geocodeAddress = async (addressText: string) => {
@@ -121,57 +171,201 @@ const BookingScreen = () => {
     }
   };
 
-  const basePrice = useMemo(
-    () => DURATIONS.find((d) => d.id === durationId)?.price ?? 0,
-    [durationId],
-  );
+  // Calculate pricing
+  const selectedDurationData = useMemo(() => {
+    return service?.durationPrice.find((d) => d.id === selectedDuration);
+  }, [service, selectedDuration]);
 
-  const addOnPrice = useMemo(
-    () =>
-      selectedAddOns.reduce(
-        (sum, addOnId) =>
-          sum + (ADD_ONS.find((a) => a.id === addOnId)?.price ?? 0),
-        0,
-      ),
-    [selectedAddOns],
-  );
+  const roomPriceTotal = useMemo(() => {
+    if (!service) return 0;
+    let total = 0;
 
-  const optionPrice = useMemo(
-    () =>
-      selectedOptions.reduce(
-        (sum, optionId) =>
-          sum + (OPTIONS.find((o) => o.id === optionId)?.price ?? 0),
-        0,
-      ),
-    [selectedOptions],
-  );
+    // Calculate bedroom price
+    const bedroomPricing = service.roomPricing.filter(
+      (r) => r.roomType === 'Bedroom',
+    );
+    const bedroomPrice = bedroomPricing.find(
+      (r) => r.roomCount === bedroomCount,
+    );
+    if (bedroomPrice) total += bedroomPrice.additionalPrice;
 
-  const total = basePrice + addOnPrice + optionPrice;
+    // Calculate bathroom price
+    const bathroomPricing = service.roomPricing.filter(
+      (r) => r.roomType === 'Bathroom',
+    );
+    const bathroomPrice = bathroomPricing.find(
+      (r) => r.roomCount === bathroomCount,
+    );
+    if (bathroomPrice) total += bathroomPrice.additionalPrice;
 
-  const toggleItem = (
-    list: string[],
-    value: string,
-    setter: (next: string[]) => void,
-  ) => {
-    if (list.includes(value)) {
-      setter(list.filter((item) => item !== value));
-    } else {
-      setter([...list, value]);
-    }
-  };
+    return total;
+  }, [service, bedroomCount, bathroomCount]);
 
-  const handleSubmit = () => {
+  const basePrice = service?.basePrice || 0;
+  const durationMultiplier = selectedDurationData?.priceMultiplier || 1;
+  const total = basePrice * durationMultiplier + roomPriceTotal;
+
+  // Calculate end time based on start time + duration
+  const endTime = useMemo(() => {
+    const durationHours = selectedDurationData?.durationHours || 2;
+    const end = new Date(startTime);
+    end.setHours(end.getHours() + durationHours);
+    return end;
+  }, [startTime, selectedDurationData]);
+
+  // Get room count options from service data
+  const bedroomOptions = useMemo(() => {
+    if (!service) return [];
+    return service.roomPricing
+      .filter((r) => r.roomType === 'Bedroom')
+      .map((r) => r.roomCount)
+      .sort((a, b) => a - b);
+  }, [service]);
+
+  const bathroomOptions = useMemo(() => {
+    if (!service) return [];
+    return service.roomPricing
+      .filter((r) => r.roomType === 'Bathroom')
+      .map((r) => r.roomCount)
+      .sort((a, b) => a - b);
+  }, [service]);
+
+  const handleSubmit = async () => {
     if (!address.trim()) {
-      alert('Please enter your address');
+      Alert.alert('Error', 'Please enter your address');
       return;
     }
 
-    // TODO: call API tạo booking với serviceId = id
-    alert(
-      `Booking success for service ${id ?? '-'}\nTotal: ${total.toLocaleString()} ₫`,
-    );
-    router.replace('/customer/(tabs)/activity');
+    if (!id) {
+      Alert.alert('Error', 'Service ID is missing');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Combine date and time properly
+      const scheduledStart = new Date(scheduledDate);
+      scheduledStart.setHours(
+        startTime.getHours(),
+        startTime.getMinutes(),
+        0,
+        0,
+      );
+
+      const scheduledEnd = new Date(scheduledDate);
+      scheduledEnd.setHours(endTime.getHours(), endTime.getMinutes(), 0, 0);
+
+      // Prepare booking data
+      const bookingData: CreateBookingRequest = {
+        customerId: CUSTOMER_ID,
+        serviceTypeId: id as string, // Use service ID from params
+        location: address,
+        scheduledStartTime: scheduledStart.toISOString(),
+        scheduledEndTime: scheduledEnd.toISOString(),
+        paymentMethod: paymentMethod.toLowerCase(),
+        bookingDetails: {
+          durationPriceId: selectedDuration || null,
+          bedroomCount,
+          bathroomCount,
+          kitchenCount,
+          livingRoomCount,
+          specialRequirements: specialRequirements || null,
+        },
+        contractContent: `Booking for ${service?.name}. ${address}`,
+      };
+
+      console.log('Creating booking:', bookingData);
+
+      // Call API
+      const response = await apiCall(API_ENDPOINTS.booking.create, {
+        method: 'POST',
+        body: JSON.stringify(bookingData),
+      });
+
+      console.log('Booking created:', response);
+
+      // Check if payment link exists and open it
+      if (response?.data?.paymentLink) {
+        const paymentLink = response.data.paymentLink;
+
+        Alert.alert('Booking Created!', 'Redirecting to payment...', [
+          {
+            text: 'OK',
+            onPress: async () => {
+              try {
+                // Try to open in ZaloPay app first, fallback to browser
+                const canOpen = await Linking.canOpenURL(paymentLink);
+                if (canOpen) {
+                  await Linking.openURL(paymentLink);
+                } else {
+                  // Open in browser if can't open in app
+                  await WebBrowser.openBrowserAsync(paymentLink);
+                }
+
+                // Navigate to activity after a short delay
+                setTimeout(() => {
+                  router.replace('/customer/(tabs)/activity');
+                }, 1000);
+              } catch (error) {
+                console.error('Error opening payment link:', error);
+                Alert.alert('Error', 'Could not open payment page');
+              }
+            },
+          },
+        ]);
+      } else {
+        // No payment link, just show success
+        Alert.alert(
+          'Success',
+          `Booking created successfully!\nTotal: ${total.toLocaleString()} ₫`,
+          [
+            {
+              text: 'OK',
+              onPress: () => router.replace('/customer/(tabs)/activity'),
+            },
+          ],
+        );
+      }
+    } catch (error: any) {
+      console.error('Booking error:', error);
+      Alert.alert(
+        'Error',
+        error?.message || 'Failed to create booking. Please try again.',
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  if (loadingService) {
+    return (
+      <SafeAreaView className="flex-1 bg-white">
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color="#1A78F2" />
+          <Text className="text-gray-500 mt-3">Loading service details...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!service) {
+    return (
+      <SafeAreaView className="flex-1 bg-white">
+        <View className="flex-1 items-center justify-center px-5">
+          <Text className="text-gray-600 text-center mb-4">
+            Service not found
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            className="bg-[#1A78F2] px-6 py-3 rounded-xl"
+          >
+            <Text className="text-white font-semibold">Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-white">
@@ -246,93 +440,228 @@ const BookingScreen = () => {
             💡 Tip: Drag the marker to adjust your exact location
           </Text>
 
-          {/* Duration */}
-          <Text className="text-base font-semibold mb-2">Duration</Text>
-          <View className="flex-row mb-4">
-            {DURATIONS.map((duration) => {
-              const active = durationId === duration.id;
-              return (
-                <TouchableOpacity
-                  key={duration.id}
-                  className={`px-4 py-2 mr-3 rounded-full border ${
-                    active ? 'bg-[#1A78F2] border-[#1A78F2]' : 'border-gray-300'
-                  }`}
-                  onPress={() => setDurationId(duration.id)}
-                >
-                  <Text
-                    className={`font-medium ${
-                      active ? 'text-white' : 'text-gray-700'
-                    }`}
-                  >
-                    {duration.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+          {/* Date & Time Selection */}
+          <View className="mb-6">
+            <Text className="text-base font-semibold mb-3">Schedule 📅</Text>
+
+            {/* Date Picker */}
+            <TouchableOpacity
+              className="flex-row items-center justify-between p-4 mb-3 bg-gray-50 rounded-xl border border-gray-200"
+              onPress={() => setShowDatePicker(true)}
+            >
+              <Text className="text-gray-600">Date</Text>
+              <Text className="font-semibold text-gray-800">
+                {scheduledDate.toLocaleDateString('en-US', {
+                  weekday: 'short',
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric',
+                })}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Start Time Picker */}
+            <TouchableOpacity
+              className="flex-row items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200"
+              onPress={() => setShowStartTimePicker(true)}
+            >
+              <Text className="text-gray-600">Start Time</Text>
+              <Text className="font-semibold text-gray-800">
+                {startTime.toLocaleTimeString('en-US', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </Text>
+            </TouchableOpacity>
+
+            <Text className="text-xs text-gray-500 mt-2 ml-1">
+              {selectedDurationData &&
+                `Duration: ${selectedDurationData.durationHours}h`}
+              {selectedDurationData && ' • '}
+              End time:{' '}
+              {endTime.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </Text>
           </View>
 
-          {/* Add-ons */}
-          <Text className="text-base font-semibold mb-2">Add-ons</Text>
-          {ADD_ONS.map((addOn) => {
-            const active = selectedAddOns.includes(addOn.id);
-            return (
-              <TouchableOpacity
-                key={addOn.id}
-                className={`flex-row justify-between items-center p-3 mb-2 rounded-xl border ${
-                  active ? 'border-[#1A78F2] bg-blue-50' : 'border-gray-200'
-                }`}
-                onPress={() =>
-                  toggleItem(selectedAddOns, addOn.id, setSelectedAddOns)
-                }
-              >
-                <Text className="text-gray-800">{addOn.label}</Text>
-                <Text className="font-semibold">
-                  {addOn.price.toLocaleString()} ₫
+          {/* Room Details - Dynamic based on service */}
+          {service &&
+            (bedroomOptions.length > 0 || bathroomOptions.length > 0) && (
+              <View className="mb-6">
+                <Text className="text-base font-semibold mb-3">
+                  Room Selection 🏠
                 </Text>
-              </TouchableOpacity>
-            );
-          })}
 
-          {/* Options */}
-          <Text className="text-base font-semibold mt-4 mb-2">Options</Text>
-          {OPTIONS.map((option) => {
-            const active = selectedOptions.includes(option.id);
-            return (
-              <TouchableOpacity
-                key={option.id}
-                className={`flex-row justify-between items-center p-3 mb-2 rounded-xl border ${
-                  active ? 'border-[#1A78F2] bg-blue-50' : 'border-gray-200'
-                }`}
-                onPress={() =>
-                  toggleItem(selectedOptions, option.id, setSelectedOptions)
-                }
-              >
-                <Text className="text-gray-800">{option.label}</Text>
-                <Text className="font-semibold">
-                  {option.price.toLocaleString()} ₫
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
+                {/* Bedroom Selection */}
+                {bedroomOptions.length > 0 && (
+                  <View className="mb-4">
+                    <Text className="text-gray-600 text-sm mb-2">Bedrooms</Text>
+                    <View className="flex-row flex-wrap gap-2">
+                      {bedroomOptions.map((count) => {
+                        const pricing = service.roomPricing.find(
+                          (r) =>
+                            r.roomType === 'Bedroom' && r.roomCount === count,
+                        );
+                        const active = bedroomCount === count;
+                        return (
+                          <TouchableOpacity
+                            key={count}
+                            className={`px-4 py-3 rounded-xl border flex-1 min-w-[30%] ${
+                              active
+                                ? 'bg-[#1A78F2] border-[#1A78F2]'
+                                : 'bg-gray-50 border-gray-200'
+                            }`}
+                            onPress={() => setBedroomCount(count)}
+                          >
+                            <Text
+                              className={`text-center font-semibold ${
+                                active ? 'text-white' : 'text-gray-700'
+                              }`}
+                            >
+                              {count} {count > 1 ? 'rooms' : 'room'}
+                            </Text>
+                            {pricing && (
+                              <Text
+                                className={`text-center text-xs mt-1 ${
+                                  active ? 'text-white' : 'text-[#1A78F2]'
+                                }`}
+                              >
+                                +{pricing.additionalPrice.toLocaleString()}₫
+                              </Text>
+                            )}
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+                )}
+
+                {/* Bathroom Selection */}
+                {bathroomOptions.length > 0 && (
+                  <View className="mb-4">
+                    <Text className="text-gray-600 text-sm mb-2">
+                      Bathrooms
+                    </Text>
+                    <View className="flex-row flex-wrap gap-2">
+                      {bathroomOptions.map((count) => {
+                        const pricing = service.roomPricing.find(
+                          (r) =>
+                            r.roomType === 'Bathroom' && r.roomCount === count,
+                        );
+                        const active = bathroomCount === count;
+                        return (
+                          <TouchableOpacity
+                            key={count}
+                            className={`px-4 py-3 rounded-xl border flex-1 min-w-[30%] ${
+                              active
+                                ? 'bg-[#1A78F2] border-[#1A78F2]'
+                                : 'bg-gray-50 border-gray-200'
+                            }`}
+                            onPress={() => setBathroomCount(count)}
+                          >
+                            <Text
+                              className={`text-center font-semibold ${
+                                active ? 'text-white' : 'text-gray-700'
+                              }`}
+                            >
+                              {count} {count > 1 ? 'rooms' : 'room'}
+                            </Text>
+                            {pricing && (
+                              <Text
+                                className={`text-center text-xs mt-1 ${
+                                  active ? 'text-white' : 'text-[#1A78F2]'
+                                }`}
+                              >
+                                +{pricing.additionalPrice.toLocaleString()}₫
+                              </Text>
+                            )}
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+                )}
+              </View>
+            )}
+
+          {/* Special Requirements */}
+          <View className="mb-6">
+            <Text className="text-base font-semibold mb-2">
+              Special Requirements
+            </Text>
+            <InputWithLabel
+              placeholder="Any special requirements or notes..."
+              value={specialRequirements}
+              onChangeText={setSpecialRequirements}
+              multiline
+              numberOfLines={3}
+              style={{ height: 80, textAlignVertical: 'top' }}
+            />
+          </View>
+
+          {/* Duration - Dynamic based on service */}
+          {service && service.durationPrice.length > 0 && (
+            <View className="mb-6">
+              <Text className="text-base font-semibold mb-2">Duration ⏰</Text>
+              <View className="flex-row flex-wrap gap-2">
+                {service.durationPrice.map((duration) => {
+                  const active = selectedDuration === duration.id;
+                  return (
+                    <TouchableOpacity
+                      key={duration.id}
+                      className={`px-4 py-3 rounded-xl border flex-1 min-w-[30%] ${
+                        active
+                          ? 'bg-[#1A78F2] border-[#1A78F2]'
+                          : 'bg-gray-50 border-gray-200'
+                      }`}
+                      onPress={() => setSelectedDuration(duration.id)}
+                    >
+                      <Text
+                        className={`text-center font-semibold ${
+                          active ? 'text-white' : 'text-gray-700'
+                        }`}
+                      >
+                        {duration.durationHours}h
+                      </Text>
+                      <Text
+                        className={`text-center text-xs mt-1 ${
+                          active ? 'text-white' : 'text-[#1A78F2]'
+                        }`}
+                      >
+                        ×{duration.priceMultiplier}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          )}
 
           {/* Summary */}
           <View className="mt-6 p-4 rounded-2xl bg-gray-50">
             <Text className="text-base font-semibold mb-2">Summary</Text>
             <View className="flex-row justify-between mb-1">
-              <Text>Base</Text>
+              <Text>Base Price</Text>
               <Text>{basePrice.toLocaleString()} ₫</Text>
             </View>
-            <View className="flex-row justify-between mb-1">
-              <Text>Add-ons</Text>
-              <Text>{addOnPrice.toLocaleString()} ₫</Text>
-            </View>
-            <View className="flex-row justify-between mb-3">
-              <Text>Options</Text>
-              <Text>{optionPrice.toLocaleString()} ₫</Text>
-            </View>
+            {selectedDurationData && (
+              <View className="flex-row justify-between mb-1">
+                <Text>Duration ({selectedDurationData.durationHours}h)</Text>
+                <Text>×{selectedDurationData.priceMultiplier}</Text>
+              </View>
+            )}
+            {roomPriceTotal > 0 && (
+              <View className="flex-row justify-between mb-1">
+                <Text>Room pricing</Text>
+                <Text>+{roomPriceTotal.toLocaleString()} ₫</Text>
+              </View>
+            )}
+            <View className="border-t border-gray-300 my-2" />
             <View className="flex-row justify-between">
-              <Text className="font-bold">Total</Text>
-              <Text className="font-bold text-[#1A78F2]">
+              <Text className="font-bold text-lg">Total</Text>
+              <Text className="font-bold text-lg text-[#1A78F2]">
                 {total.toLocaleString()} ₫
               </Text>
             </View>
@@ -340,7 +669,7 @@ const BookingScreen = () => {
 
           {/* Payment */}
           <Text className="text-base font-semibold mt-6 mb-2">
-            Payment method
+            Payment method 💳
           </Text>
           <View className="flex-row flex-wrap">
             {PAYMENT_METHODS.map((method) => {
@@ -363,10 +692,133 @@ const BookingScreen = () => {
         </ScrollView>
       </View>
 
+      {/* Date Picker Modal */}
+      {Platform.OS === 'ios' ? (
+        <Modal
+          visible={showDatePicker}
+          transparent={true}
+          animationType="slide"
+        >
+          <View
+            className="flex-1 justify-end"
+            style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+          >
+            <View
+              className="bg-white rounded-t-3xl"
+              style={{ paddingBottom: 40 }}
+            >
+              <View className="flex-row justify-between items-center p-4 border-b border-gray-200">
+                <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                  <Text className="text-[#1A78F2] text-base">Cancel</Text>
+                </TouchableOpacity>
+                <Text className="font-semibold text-base">Select Date</Text>
+                <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                  <Text className="text-[#1A78F2] text-base font-semibold">
+                    Done
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <View style={{ height: 260 }}>
+                <DateTimePicker
+                  value={scheduledDate}
+                  mode="date"
+                  display="spinner"
+                  onChange={(event, selectedDate) => {
+                    if (selectedDate) setScheduledDate(selectedDate);
+                  }}
+                  minimumDate={new Date()}
+                  textColor="#000000"
+                />
+              </View>
+            </View>
+          </View>
+        </Modal>
+      ) : (
+        showDatePicker && (
+          <DateTimePicker
+            value={scheduledDate}
+            mode="date"
+            display="default"
+            onChange={(event, selectedDate) => {
+              setShowDatePicker(false);
+              if (selectedDate) setScheduledDate(selectedDate);
+            }}
+            minimumDate={new Date()}
+          />
+        )
+      )}
+
+      {/* Start Time Picker Modal */}
+      {Platform.OS === 'ios' ? (
+        <Modal
+          visible={showStartTimePicker}
+          transparent={true}
+          animationType="slide"
+        >
+          <View
+            className="flex-1 justify-end"
+            style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+          >
+            <View
+              className="bg-white rounded-t-3xl"
+              style={{ paddingBottom: 40 }}
+            >
+              <View className="flex-row justify-between items-center p-4 border-b border-gray-200">
+                <TouchableOpacity onPress={() => setShowStartTimePicker(false)}>
+                  <Text className="text-[#1A78F2] text-base">Cancel</Text>
+                </TouchableOpacity>
+                <Text className="font-semibold text-base">
+                  Select Start Time
+                </Text>
+                <TouchableOpacity onPress={() => setShowStartTimePicker(false)}>
+                  <Text className="text-[#1A78F2] text-base font-semibold">
+                    Done
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <View style={{ height: 260 }}>
+                <DateTimePicker
+                  value={startTime}
+                  mode="time"
+                  display="spinner"
+                  onChange={(event, selectedTime) => {
+                    if (selectedTime) setStartTime(selectedTime);
+                  }}
+                  textColor="#000000"
+                />
+              </View>
+            </View>
+          </View>
+        </Modal>
+      ) : (
+        showStartTimePicker && (
+          <DateTimePicker
+            value={startTime}
+            mode="time"
+            display="default"
+            onChange={(event, selectedTime) => {
+              setShowStartTimePicker(false);
+              if (selectedTime) setStartTime(selectedTime);
+            }}
+          />
+        )
+      )}
+
       {/* Sticky confirm button */}
       <View className="px-5 pb-4 pt-2 border-t border-gray-200 bg-white">
-        <Button className="rounded-xl" onPress={handleSubmit}>
-          Confirm & Pay
+        <Button
+          className="rounded-xl"
+          onPress={handleSubmit}
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? (
+            <View className="flex-row items-center justify-center">
+              <ActivityIndicator color="#fff" className="mr-2" />
+              <Text className="text-white font-semibold">Processing...</Text>
+            </View>
+          ) : (
+            `Confirm & Pay ${total.toLocaleString()} ₫`
+          )}
         </Button>
       </View>
     </SafeAreaView>
@@ -374,3 +826,4 @@ const BookingScreen = () => {
 };
 
 export default BookingScreen;
+

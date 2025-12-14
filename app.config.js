@@ -63,6 +63,8 @@ module.exports = {
     },
     extra: {
       GOOGLE_MAP_KEY: process.env.GOOGLE_MAP_KEY,
+      BACKEND_API: process.env.BACKEND_API,
     },
   },
 };
+
