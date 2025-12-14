@@ -64,14 +64,6 @@ export default function SignUpLayout() {
           headerBackground: undefined,
         }}
       />
-      <Stack.Screen
-        name="home/task-detail/index"
-        options={{
-          title: 'Task detail',
-          headerShown: false,
-          headerBackground: undefined,
-        }}
-      />
     </Stack>
   );
 }

@@ -1,14 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, Text, View } from 'react-native';
+import React from 'react';
+import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Button from '../../../../components/Button';
 import { Task } from '../../../../types/task.types';
-export default function TaskAcceptScreen() {
+
+export default function TaskInfoScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
 
   // TODO: Fetch task data from API
   const task: Task = {
@@ -18,25 +18,12 @@ export default function TaskAcceptScreen() {
     location: '123 Business St, Office Building A',
     priority: 'HIGH',
     materials: ['All-purpose cleaner', 'Microfiber cloths', 'Vacuum cleaner', 'Glass cleaner'],
-    status: 'PENDING',
+    status: 'confirmed',
     assignedAt: new Date().toISOString(),
   };
 
-  const handleAccept = async () => {
-    try {
-      setIsLoading(true);
-      // TODO: Call API POST /tasks/:id/accept
-      // const response = await fetch(`/api/tasks/${id}/accept`, { method: 'POST' });
-      
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      
-      router.push(`/task/${task.id}/start`);
-    } catch (error) {
-      Alert.alert('Error', 'Failed to accept task. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
+  const handleContinue = () => {
+    router.push(`/task/${id}/start`);
   };
 
   const handleCancel = () => {
@@ -114,13 +101,13 @@ export default function TaskAcceptScreen() {
           </View>
         )}
 
-        {/* Confirmation Message */}
+        {/* Information Message */}
         <View className="bg-blue-50 p-4 rounded-lg mb-6">
           <Text className="text-blue-900 font-semibold mb-1">
-            Ready to accept this task?
+            Task Assigned
           </Text>
           <Text className="text-blue-700 text-sm">
-            By accepting, you confirm that you have reviewed the task details and are ready to proceed.
+            This task has been assigned to you. Review the details below and continue when ready.
           </Text>
         </View>
       </ScrollView>
@@ -128,28 +115,19 @@ export default function TaskAcceptScreen() {
       {/* Action Buttons */}
       <View className="px-6 py-4 border-t border-gray-200">
         <Button
-          onPress={handleAccept}
-          disabled={isLoading}
+          onPress={handleContinue}
           className="bg-blue-600"
         >
-          {isLoading ? (
-            <View className="flex-row items-center">
-              <ActivityIndicator color="white" className="mr-2" />
-              <Text className="text-white font-bold">Accepting...</Text>
-            </View>
-          ) : (
-            <View className="flex-row items-center">
-              <Ionicons name="checkmark-circle" size={20} color="white" />
-              <Text className="text-white font-bold ml-2">Accept Task</Text>
-            </View>
-          )}
+          <View className="flex-row items-center justify-center">
+            <Ionicons name="arrow-forward-circle" size={20} color="white" />
+            <Text className="text-white font-bold ml-2">Continue to Start</Text>
+          </View>
         </Button>
         <Button
           onPress={handleCancel}
-          disabled={isLoading}
           className="mt-3 bg-white border border-gray-300"
         >
-          <Text className="text-gray-700 font-bold">Cancel</Text>
+          <Text className="text-gray-700 font-bold">Back</Text>
         </Button>
       </View>
     </SafeAreaView>
