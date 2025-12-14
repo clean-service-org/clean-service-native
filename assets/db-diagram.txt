@@ -1,0 +1,223 @@
+Table users {
+    id UUID [primary key]
+    user_type ENUM('customer', 'helper', 'admin')
+    gender ENUM('male', 'female', 'other')
+    profile_picture VARCHAR(255)
+    full_name VARCHAR(150) [not null]
+    date_of_birth DATE [not null]
+    identity_card VARCHAR(150)
+    address VARCHAR(512)
+    phone_number VARCHAR(20) [not null]
+    email VARCHAR(255) UNIQUE [not null]
+    status ENUM('active', 'in_active', 'blocked') [not null, default: 'active']
+    number_of_violations INT
+    created_at TIMESTAMP [not null, default: 'CURRENT_TIMESTAMP']
+    updated_at TIMESTAMP [not null, default: 'CURRENT_TIMESTAMP']
+}
+
+Table customers {
+  id UUID [primary key, ref: - users.id]
+  
+}
+
+Table helpers {
+    id UUID [primary key, ref: - users.id]
+    experience_description VARCHAR(512)
+    resume_uploaded VARCHAR(512)
+    services_offered uuid[] // Array of service_type_ids
+    hourly_rate DECIMAL(10, 2) [not null] 
+    average_rating DECIMAL(2, 1) [default: 0]
+    completed_jobs INT [default: 0]
+    cancelled_jobs INT [default: 0]
+    created_at TIMESTAMP [not null, default: 'CURRENT_TIMESTAMP']
+    updated_at TIMESTAMP [not null, default: 'CURRENT_TIMESTAMP']
+}
+
+Table helper_availability {
+    id UUID [primary key]
+    helper_id UUID [not null, ref: > helpers.id]
+    start_datetime TIMESTAMP [not null]
+    end_datetime TIMESTAMP [not null]
+    availability_type ENUM('vacation', 'sick_leave', 'personal_leave', 'unavailable') [not null]
+    status ENUM('pending', 'approved', 'rejected', 'cancelled') [not null, default: 'pending']
+    request_reason VARCHAR(512)
+    rejection_reason VARCHAR(512)
+    approved_by UUID [ref: > users.id]
+    created_at TIMESTAMP [not null, default: 'CURRENT_TIMESTAMP']
+    updated_at TIMESTAMP [not null, default: 'CURRENT_TIMESTAMP']
+
+    indexes {
+        (helper_id, start_datetime, end_datetime) // For efficient date range queries
+        (status) // For filtering by status
+    }
+
+    // Constraints
+    // constraint valid_datetime_range {
+    //     check (end_datetime > start_datetime)
+    // }
+    // constraint no_overlapping_approved_time {
+    //     unique(helper_id, start_datetime, end_datetime) where status = 'approved'
+    // }
+}
+
+Table service_categories {
+    id UUID [primary key]
+    name VARCHAR(50) [not null, unique]
+    description VARCHAR(512)
+    is_active BOOLEAN [not null, default: true]
+    created_at TIMESTAMP [not null, default: 'CURRENT_TIMESTAMP']
+    updated_at TIMESTAMP [not null, default: 'CURRENT_TIMESTAMP']
+}
+
+Table service_types {
+    id UUID [primary key]
+    service_category_id UUID [not null, ref: > service_categories.id]
+    name VARCHAR(100) [not null] // e.g., 'Number of bedroom', 'Number of bathroom'
+    description VARCHAR(512)
+    base_price DECIMAL [not null]
+    is_active BOOLEAN [not null, default: true]
+    created_at TIMESTAMP [not null, default: 'CURRENT_TIMESTAMP']
+    updated_at TIMESTAMP [not null, default: 'CURRENT_TIMESTAMP']
+
+    indexes {
+      (service_category_id, name) [unique]
+    }
+}
+
+// Table service_detail {
+//     id UUID [primary key]
+//     service_type_id UUID [not null, ref: > service_types.id]
+//     title TEXT [not null]
+//     duration INT
+//     additional_price DECIMAL(10, 2) [not null, default: 0]
+//     multiply_price DECIMAL(10, 2) [not null, default: 0]
+//     created_at TIMESTAMP [not null, default: 'CURRENT_TIMESTAMP']
+// }
+
+Table room_pricing {
+    id UUID [primary key]
+    service_type_id UUID [not null, ref: > service_types.id]
+    room_type ENUM('bedroom', 'bathroom', 'kitchen', 'living_room', 'other') [not null]
+    room_count INT // CHECK (room_count BETWEEN 0 AND 5), -- 0 represents studio
+    additional_price DECIMAL(10, 2) [not null, default: 0]
+    created_at TIMESTAMP [not null, default: 'CURRENT_TIMESTAMP']
+    updated_at TIMESTAMP [not null, default: 'CURRENT_TIMESTAMP']
+    
+    indexes {
+      (service_type_id, room_type, room_count) [unique]
+    }
+}
+
+Table duration_price {
+    id UUID [primary key]
+    service_type_id UUID [not null, ref: > service_types.id]
+    duration_hours INT [not null]
+    price_multiplier DECCIMAL(3, 2) [not null, default: 1.00]
+    description VARCHAR(512) // additional, specific duration corresponding to which house features
+    created_at TIMESTAMP [not null, default: 'CURRENT_TIMESTAMP']
+    updated_at TIMESTAMP [not null, default: 'CURRENT_TIMESTAMP']
+
+    indexes {
+      (service_type_id, duration_hours) [unique]
+    }
+}
+
+Table bookings {
+    id UUID [primary key]
+    order_id INT 
+    customer_id UUID [not null, ref: > users.id]
+    helper_id UUID [ref: > helpers.id]
+    service_type_id UUID [not null, ref: > service_types.id]
+    location VARCHAR(512) [not null]
+    latitude VARCHAR(200) [not null] // additional
+    longitude VARCHAR(200) [not null] // additional
+    house_type ENUM('house', 'apt', 'villa') [not null] // additional
+    house_number VARCHAR(50) // additional
+    scheduled_start_time TIMESTAMP [not null]
+    scheduled_end_time TIMESTAMP [not null]
+    status ENUM('pending', 'confirmed', 'in_progress', 'completed', 'cancelled') [not null, default: 'pending']
+    cancellation_reason VARCHAR(512)
+    total_price DECIMAL(10, 2) [not null]
+    payment_status ENUM('pending', 'paid', 'refunded') [not null, default: 'pending']
+    payment_method VARCHAR(50)
+    helper_rating DECIMAL(2, 1)
+    created_at TIMESTAMP [not null, default: `CURRENT_TIMESTAMP`]
+    updated_at TIMESTAMP [not null, default: `CURRENT_TIMESTAMP`]
+}
+
+Table booking_details {
+  id UUID [primary key]
+  // service_detail_id UUID [not null, ref: > service_detail.id]
+  booking_id UUID [not null, ref: - bookings.id]
+  duration_price_id UUID [ref: > duration_price.id]
+  bedroom_count INT [default: 0] // subtracted --> use duration to calculate price
+  bathroom_count INT [default: 0] // subtracted --> use duration to calculate price
+  kitchen_count INT [default: 0] // subtracted --> use duration to calculate price
+  living_room_count INT [default: 0] // subtracted --> use duration to calculate price
+
+  special_requirements VARCHAR(512) 
+  created_at TIMESTAMP [not null, default: `CURRENT_TIMESTAMP`]
+  updated_at TIMESTAMP [not null, default: `CURRENT_TIMESTAMP`]
+}
+
+Table booking_contracts { // subtracted
+    id UUID [primary key]
+    booking_id UUID [not null, ref: - bookings.id]
+    content VARCHAR(512) 
+    created_at TIMESTAMP [not null, default: `CURRENT_TIMESTAMP`]
+    updated_at TIMESTAMP [not null, default: `CURRENT_TIMESTAMP`]
+}
+
+Table contract { // subtracted
+    id UUID [primary key]
+    description VARCHAR(512) 
+    created_at TIMESTAMP [not null, default: `CURRENT_TIMESTAMP`]
+    updated_at TIMESTAMP [not null, default: `CURRENT_TIMESTAMP`]   
+}
+
+Table feedbacks {
+    id UUID [primary key]
+    // reported_by bool // 0 is customer, 1 is helper ... 
+    booking_id UUID [not null, ref: > bookings.id]
+    title VARCHAR(200) 
+    description VARCHAR(512) 
+    created_at TIMESTAMP [not null, default: `CURRENT_TIMESTAMP`]
+    updated_at TIMESTAMP [not null, default: `CURRENT_TIMESTAMP`]
+}
+
+Table refunds {
+    id UUID [primary key]
+    // requested_by bool // 0 is customer, 1 is helper ...
+    booking_id UUID [not null, ref: > bookings.id]
+    reason VARCHAR(512)  [not null]
+    status ENUM('pending', 'refunded', 'declined') [not null, default: 'pending']
+    created_at TIMESTAMP [not null, default: `CURRENT_TIMESTAMP`]
+    updated_at TIMESTAMP [not null, default: `CURRENT_TIMESTAMP`]   
+    resolved_at TIMESTAMP
+}
+
+Table favorite_helpers {
+    customer_id UUID [not null, ref: > customers.id]
+    helper_id UUID [not null, ref: > helpers.id]
+    created_at TIMESTAMP [not null, default: `CURRENT_TIMESTAMP`]
+    updated_at TIMESTAMP [not null, default: `CURRENT_TIMESTAMP`]   
+    
+    indexes {
+        (customer_id, helper_id) [PK]
+    }
+}
+
+Table blacklisted_helpers {
+    customer_id UUID [not null, ref: > customers.id]
+    helper_id UUID [not null, ref: > helpers.id]
+    reason VARCHAR(512) [not null]
+    is_permanent BOOLEAN [not null, default: false]
+    expiry_date TIMESTAMP
+    created_at TIMESTAMP [not null, default: `CURRENT_TIMESTAMP`]
+    updated_at TIMESTAMP [not null, default: `CURRENT_TIMESTAMP`]   
+    
+    indexes {
+        (customer_id, helper_id) [PK]
+    }
+}
+
