@@ -22,6 +22,10 @@ export const API_ENDPOINTS = {
     all: '/booking/all',
     refund: '/booking/refund',
   },
+  // Scheduler
+  scheduler: {
+    byCustomerId: (customerId: string) => `/scheduler?customerId=${customerId}`,
+  },
   // Service
   service: {
     types: '/servicetype/all',

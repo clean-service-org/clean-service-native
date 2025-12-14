@@ -198,12 +198,31 @@ const BookingScreen = () => {
     );
     if (bathroomPrice) total += bathroomPrice.additionalPrice;
 
+    // Calculate kitchen price
+    const kitchenPricing = service.roomPricing.filter(
+      (r) => r.roomType === 'Kitchen',
+    );
+    const kitchenPrice = kitchenPricing.find(
+      (r) => r.roomCount === kitchenCount,
+    );
+    if (kitchenPrice) total += kitchenPrice.additionalPrice;
+
+    // Calculate living room price
+    const livingRoomPricing = service.roomPricing.filter(
+      (r) => r.roomType === 'LivingRoom',
+    );
+    const livingRoomPrice = livingRoomPricing.find(
+      (r) => r.roomCount === livingRoomCount,
+    );
+    if (livingRoomPrice) total += livingRoomPrice.additionalPrice;
+
     return total;
-  }, [service, bedroomCount, bathroomCount]);
+  }, [service, bedroomCount, bathroomCount, kitchenCount, livingRoomCount]);
 
   const basePrice = service?.basePrice || 0;
-  const durationMultiplier = selectedDurationData?.priceMultiplier || 1;
-  const total = basePrice * durationMultiplier + roomPriceTotal;
+  const durationMultiplier = selectedDurationData?.priceMultiplier || 0;
+  // Formula: basePrice + roomPrices + (basePrice * durationMultiplier)
+  const total = basePrice + roomPriceTotal + (basePrice * durationMultiplier);
 
   // Calculate end time based on start time + duration
   const endTime = useMemo(() => {
