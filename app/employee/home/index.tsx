@@ -1,8 +1,7 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
-  Alert,
   FlatList,
   ScrollView,
   Text,
@@ -20,14 +19,14 @@ interface Task {
   location: string;
   price: number;
   priority: 'low' | 'medium' | 'high';
-  accepted: boolean;
+  status: 'pending' | 'confirmed' | 'in_progress' | 'completed';
 }
 
 const HomeScreen = () => {
 
   const router = useRouter();
 
-  const [tasks, setTasks] = useState<Task[]>([
+  const [tasks] = useState<Task[]>([
     {
       id: '1',
       title: 'Office Cleaning',
@@ -37,7 +36,7 @@ const HomeScreen = () => {
       location: '456 Business Ave, Suite 200',
       price: 250,
       priority: 'high',
-      accepted: true,
+      status: 'confirmed',
     },
     {
       id: '2',
@@ -48,7 +47,7 @@ const HomeScreen = () => {
       location: '123 Main Street, Downtown',
       price: 175,
       priority: 'medium',
-      accepted: true,
+      status: 'confirmed',
     },
     {
       id: '3',
@@ -59,7 +58,7 @@ const HomeScreen = () => {
       location: '789 Oak Drive, Residential Area',
       price: 120,
       priority: 'medium',
-      accepted: true,
+      status: 'in_progress',
     },
     {
       id: '4',
@@ -70,7 +69,7 @@ const HomeScreen = () => {
       location: '321 Convention Center Way',
       price: 200,
       priority: 'high',
-      accepted: true,
+      status: 'confirmed',
     },
     {
       id: '5',
@@ -81,77 +80,90 @@ const HomeScreen = () => {
       location: '555 Maple Street, Apt 4B',
       price: 95,
       priority: 'low',
-      accepted: true,
+      status: 'completed',
     },
   ]);
 
-  const [filter, setFilter] = useState<'all' | 'available' | 'accepted'>(
-    'available',
+  const [filter, setFilter] = useState<'all' | 'confirmed' | 'in_progress' | 'completed'>(
+    'all',
   );
 
   const filteredTasks = tasks.filter((task) => {
-    if (filter === 'available') return !task.accepted;
-    if (filter === 'accepted') return task.accepted;
-    return true;
+    if (filter === 'all') return true;
+    return task.status === filter;
   });
 
-  const acceptedCount = tasks.filter((t) => t.accepted).length;
-  const availableCount = tasks.filter((t) => !t.accepted).length;
-
-  const handleAcceptTask = (id: string) => {
-    setTasks(
-      tasks.map((task) =>
-        task.id === id ? { ...task, accepted: !task.accepted } : task,
-      ),
-    );
-    const task = tasks.find((t) => t.id === id);
-    if (task && !task.accepted) {
-      Alert.alert(
-        'Task Accepted',
-        `You accepted "${task.title}" for $${task.price}`,
-      );
-    }
-  };
+  const confirmedCount = tasks.filter((t) => t.status === 'confirmed').length;
+  const inProgressCount = tasks.filter((t) => t.status === 'in_progress').length;
+  const completedCount = tasks.filter((t) => t.status === 'completed').length;
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'high':
-        return '#EF4444';
+        return 'bg-red-100';
       case 'medium':
-        return '#F59E0B';
+        return 'bg-yellow-100';
       case 'low':
-        return '#10B981';
+        return 'bg-green-100';
       default:
-        return '#6B7280';
+        return 'bg-gray-100';
+    }
+  };
+
+  const getPriorityTextColor = (priority: string) => {
+    switch (priority) {
+      case 'high':
+        return 'text-red-800';
+      case 'medium':
+        return 'text-yellow-800';
+      case 'low':
+        return 'text-green-800';
+      default:
+        return 'text-gray-800';
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'confirmed':
+        return 'bg-blue-100 text-blue-800';
+      case 'in_progress':
+        return 'bg-purple-100 text-purple-800';
+      case 'completed':
+        return 'bg-green-100 text-green-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'confirmed':
+        return 'Assigned';
+      case 'in_progress':
+        return 'In Progress';
+      case 'completed':
+        return 'Completed';
+      default:
+        return status;
     }
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
-      {/* Header */}
-      <View
-        style={{ paddingHorizontal: 24, paddingTop: 20, paddingBottom: 24 }}
-      >
-        <Text
-          style={{
-            fontSize: 32,
-            fontWeight: '700',
-            color: '#1F2937',
-            marginBottom: 4,
-          }}
-        >
-          Available Tasks
+    <SafeAreaView className="flex-1 bg-white">
+      <View className="px-6 pt-5 pb-6">
+        <Text className="text-3xl font-bold text-gray-900 mb-1">
+          My Tasks
         </Text>
-        <Text style={{ fontSize: 14, color: '#6B7280' }}>
-          {availableCount} tasks available • {acceptedCount} accepted
+        <Text className="text-sm text-gray-600">
+          {confirmedCount} assigned • {inProgressCount} in progress • {completedCount} completed
         </Text>
       </View>
 
-      {/* Filter Tabs */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        className="flex-grow-0 w-full h-fit min-h-14 pb-4 mb-4 px-4 flex gap-2"
+        className="flex-grow-0 h-fit min-h-14 pb-4 mb-4 px-4 flex gap-2"
       >
         <TouchableOpacity
           onPress={() => setFilter('all')}
@@ -172,9 +184,9 @@ const HomeScreen = () => {
         </TouchableOpacity>
 
         <TouchableOpacity
-          onPress={() => setFilter('available')}
+          onPress={() => setFilter('in_progress')}
           style={{
-            backgroundColor: filter === 'available' ? '#3B82F6' : '#F3F4F6',
+            backgroundColor: filter === 'in_progress' ? '#3B82F6' : '#F3F4F6',
           }}
           className="w-fit h-10 px-2 flex justify-center items-center rounded-lg mr-2"
         >
@@ -182,17 +194,35 @@ const HomeScreen = () => {
             style={{
               fontSize: 14,
               fontWeight: '600',
-              color: filter === 'available' ? '#FFFFFF' : '#6B7280',
+              color: filter === 'in_progress' ? '#FFFFFF' : '#6B7280',
             }}
           >
-            Available ({availableCount})
+            In Progress ({inProgressCount})
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          onPress={() => setFilter('confirmed')}
+          style={{
+            backgroundColor: filter === 'confirmed' ? '#3B82F6' : '#F3F4F6',
+          }}
+          className="w-fit h-10 px-2 flex justify-center items-center rounded-lg mr-2"
+        >
+          <Text
+            style={{
+              fontSize: 14,
+              fontWeight: '600',
+              color: filter === 'confirmed' ? '#FFFFFF' : '#6B7280',
+            }}
+          >
+            Confirmed ({confirmedCount})
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          onPress={() => setFilter('accepted')}
+          onPress={() => setFilter('completed')}
           style={{
-            backgroundColor: filter === 'accepted' ? '#3B82F6' : '#F3F4F6',
+            backgroundColor: filter === 'completed' ? '#3B82F6' : '#F3F4F6',
           }}
           className="w-fit h-10 px-2 flex justify-center items-center rounded-lg"
         >
@@ -200,185 +230,83 @@ const HomeScreen = () => {
             style={{
               fontSize: 14,
               fontWeight: '600',
-              color: filter === 'accepted' ? '#FFFFFF' : '#6B7280',
+              color: filter === 'completed' ? '#FFFFFF' : '#6B7280',
             }}
           >
-            My Tasks ({acceptedCount})
+            Completed ({completedCount})
           </Text>
         </TouchableOpacity>
       </ScrollView>
 
-      {/* Tasks List */}
       <FlatList
         data={filteredTasks}
         keyExtractor={(item) => item.id}
-        scrollEnabled={true}
-        contentContainerStyle={[
-          { paddingHorizontal: 24, paddingBottom: 100 },
-          { flexDirection: 'column', justifyContent: 'flex-start' },
-        ]}
+        className="px-6"
+        contentContainerStyle={{ paddingBottom: 100 }}
         renderItem={({ item }) => (
           <TouchableOpacity
-            onPress={() =>
-              router.push("/employee/home/task-detail")
-            }
-            style={{
-              backgroundColor: '#FFFFFF',
-              borderRadius: 12,
-              padding: 16,
-              marginBottom: 12,
-              borderLeftWidth: 4,
-              borderLeftColor: item.accepted
-                ? '#10B981'
-                : getPriorityColor(item.priority),
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 1 },
-              shadowOpacity: 0.1,
-              shadowRadius: 3,
-              elevation: 3,
-            }}
+            onPress={() => router.push(`/task/${item.id}/info`)}
+            className="bg-white rounded-xl p-4 mb-3 border border-gray-200 shadow-sm"
           >
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'flex-start',
-                marginBottom: 12,
-              }}
-            >
-              <View style={{ flex: 1 }}>
-                <Text
-                  style={{
-                    fontSize: 16,
-                    fontWeight: '700',
-                    color: '#1F2937',
-                    marginBottom: 4,
-                  }}
-                >
+            <View className="flex-row justify-between items-start mb-3">
+              <View className="flex-1 mr-3">
+                <Text className="text-lg font-bold text-gray-900 mb-2">
                   {item.title}
                 </Text>
-                <View
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
-                >
-                  <MaterialCommunityIcons
-                    name="account"
-                    size={14}
-                    color="#6B7280"
-                  />
-                  <Text style={{ fontSize: 13, color: '#6B7280' }}>
-                    {item.requestedBy}
-                  </Text>
+                <View className="flex-row items-center gap-2 mb-2">
+                  <View className={`px-2 py-1 rounded-full ${getStatusColor(item.status)}`}>
+                    <Text className={`text-xs font-semibold ${getStatusColor(item.status)}`}>
+                      {getStatusLabel(item.status)}
+                    </Text>
+                  </View>
                 </View>
               </View>
-              <View style={{ alignItems: 'flex-end' }}>
-                <Text
-                  style={{
-                    fontSize: 18,
-                    fontWeight: '700',
-                    color: '#10B981',
-                    marginBottom: 4,
-                  }}
-                >
-                  ${item.price}
-                </Text>
-              </View>
+              <Text className="text-xl font-bold text-green-600">
+                ${item.price}
+              </Text>
             </View>
 
-            <Text
-              style={{
-                fontSize: 13,
-                color: '#6B7280',
-                marginBottom: 12,
-                lineHeight: 18,
-              }}
-            >
+            <Text className="text-sm text-gray-600 mb-3 leading-5">
               {item.description}
             </Text>
 
-            <View style={{ gap: 8, marginBottom: 12 }}>
-              <View
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
-              >
-                <MaterialCommunityIcons
-                  name="clock-outline"
-                  size={16}
-                  color="#3B82F6"
-                />
-                <Text
-                  style={{ fontSize: 13, color: '#1F2937', fontWeight: '500' }}
-                >
+            <View className="space-y-2 mb-3">
+              <View className="flex-row items-center">
+                <Ionicons name="time-outline" size={16} color="#6B7280" />
+                <Text className="ml-2 text-sm text-gray-700 font-medium">
                   {item.time}
                 </Text>
               </View>
-              <View
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
-              >
-                <MaterialCommunityIcons
-                  name="map-marker-outline"
-                  size={16}
-                  color="#3B82F6"
-                />
-                <Text
-                  style={{
-                    fontSize: 13,
-                    color: '#1F2937',
-                    fontWeight: '500',
-                    flex: 1,
-                  }}
-                >
+              <View className="flex-row items-start">
+                <Ionicons name="location-outline" size={16} color="#6B7280" />
+                <Text className="ml-2 text-sm text-gray-700 font-medium flex-1">
                   {item.location}
+                </Text>
+              </View>
+              <View className="flex-row items-center">
+                <Ionicons name="person-outline" size={16} color="#6B7280" />
+                <Text className="ml-2 text-sm text-gray-700 font-medium">
+                  {item.requestedBy}
                 </Text>
               </View>
             </View>
 
-            <TouchableOpacity
-              onPress={() => handleAcceptTask(item.id)}
-              style={{
-                backgroundColor: item.accepted ? '#F3F4F6' : '#3B82F6',
-                paddingVertical: 10,
-                borderRadius: 8,
-                alignItems: 'center',
-                flexDirection: 'row',
-                justifyContent: 'center',
-                gap: 6,
-              }}
-            >
-              <MaterialCommunityIcons
-                name={item.accepted ? 'check-circle' : 'plus-circle-outline'}
-                size={18}
-                color={item.accepted ? '#9CA3AF' : '#FFFFFF'}
-              />
-              <Text
-                style={{
-                  fontSize: 14,
-                  fontWeight: '600',
-                  color: item.accepted ? '#9CA3AF' : '#FFFFFF',
-                }}
-              >
-                {item.accepted ? 'Accepted' : 'Accept Task'}
+            <View className="flex-row items-center justify-end pt-2 border-t border-gray-100">
+              <Text className="text-sm text-blue-600 font-semibold mr-1">
+                View Details
               </Text>
-            </TouchableOpacity>
+              <Ionicons name="chevron-forward" size={16} color="#2563EB" />
+            </View>
           </TouchableOpacity>
         )}
         ListEmptyComponent={
-          <View style={{ alignItems: 'center', paddingVertical: 40 }}>
-            <MaterialCommunityIcons
-              name="briefcase-outline"
-              size={48}
-              color="#D1D5DB"
-            />
-            <Text
-              style={{
-                fontSize: 16,
-                fontWeight: '600',
-                color: '#6B7280',
-                marginTop: 12,
-              }}
-            >
-              No tasks available
+          <View className="items-center py-10">
+            <Ionicons name="briefcase-outline" size={48} color="#D1D5DB" />
+            <Text className="text-base font-semibold text-gray-600 mt-3">
+              No tasks found
             </Text>
-            <Text style={{ fontSize: 14, color: '#9CA3AF', marginTop: 4 }}>
-              Check back later for more opportunities
+            <Text className="text-sm text-gray-400 mt-1">
+              Tasks matching this filter will appear here
             </Text>
           </View>
         }

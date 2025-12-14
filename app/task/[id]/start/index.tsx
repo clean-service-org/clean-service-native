@@ -16,6 +16,7 @@ import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Button from '../../../../components/Button';
 import { Task } from '../../../../types/task.types';
+import { startTask } from '../../api';
 
 const GOOGLE_API_KEY = Constants.expoConfig?.extra?.GOOGLE_MAP_KEY;
 
@@ -37,7 +38,6 @@ export default function TaskStartScreen() {
   const [duration, setDuration] = useState<string>('');
   const [isLoadingRoute, setIsLoadingRoute] = useState(false);
 
-  // TODO: Fetch task data from API
   const task: Task = {
     id: id || '1',
     title: 'Clean Office Space',
@@ -51,7 +51,7 @@ export default function TaskStartScreen() {
       'Vacuum cleaner',
       'Glass cleaner',
     ],
-    status: 'ACCEPTED',
+    status: 'confirmed',
     assignedAt: new Date().toISOString(),
     acceptedAt: new Date().toISOString(),
   };
@@ -175,16 +175,11 @@ export default function TaskStartScreen() {
   const handleStart = async () => {
     try {
       setIsLoading(true);
-      // TODO: Call API POST /tasks/:id/start
-      // const response = await fetch(`/api/tasks/${id}/start`, { method: 'POST' });
-
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
+      await startTask(id);
       router.push(`/task/${id}/in-progress` as any);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Start task error:', err);
-      Alert.alert('Error', 'Failed to start task. Please try again.');
+      Alert.alert('Error', err.message || 'Failed to start task. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -348,26 +343,6 @@ export default function TaskStartScreen() {
             <Text className="text-gray-900 leading-6">{task.description}</Text>
           </View>
         </View>
-
-        {/* Materials Checklist */}
-        {task.materials && task.materials.length > 0 && (
-          <View className="mb-6">
-            <Text className="text-lg font-semibold text-gray-900 mb-3">
-              Materials Checklist
-            </Text>
-            <View className="bg-gray-50 p-4 rounded-lg">
-              <Text className="text-gray-600 text-sm mb-3">
-                Ensure you have the following materials:
-              </Text>
-              {task.materials.map((material, index) => (
-                <View key={index} className="flex-row items-center mb-3">
-                  <View className="w-5 h-5 rounded border-2 border-gray-300 mr-3" />
-                  <Text className="text-gray-900 flex-1">{material}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
 
         {/* Safety Guidelines */}
         <View className="mb-6">

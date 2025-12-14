@@ -36,9 +36,9 @@ export default function TaskLayout() {
       })}
     >
       <Stack.Screen
-        name="[id]/accept/index"
+        name="[id]/info/index"
         options={{
-          title: 'Accept Task',
+          title: 'Task Information',
           headerTitleStyle: { fontWeight: 'bold', fontSize: 20 },
         }}
       />
@@ -53,20 +53,6 @@ export default function TaskLayout() {
         name="[id]/in-progress/index"
         options={{
           title: 'Task In Progress',
-          headerTitleStyle: { fontWeight: 'bold', fontSize: 20 },
-        }}
-      />
-      <Stack.Screen
-        name="[id]/pause/index"
-        options={{
-          title: 'Pause Task',
-          headerTitleStyle: { fontWeight: 'bold', fontSize: 20 },
-        }}
-      />
-      <Stack.Screen
-        name="[id]/resume/index"
-        options={{
-          title: 'Resume Task',
           headerTitleStyle: { fontWeight: 'bold', fontSize: 20 },
         }}
       />

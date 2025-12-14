@@ -1,15 +1,4 @@
-export type TaskStatus =
-  | 'PENDING'
-  | 'ACCEPTED'
-  | 'READY'
-  | 'IN_PROGRESS'
-  | 'PAUSED'
-  | 'PENDING_REPORT'
-  | 'REPORTED'
-  | 'REJECTED'
-  | 'REWORKING'
-  | 'APPROVED'
-  | 'CLOSED';
+export type BookingStatus = 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled';
 
 export interface Task {
   id: string;
@@ -21,12 +10,21 @@ export interface Task {
   assignedAt?: string;
   acceptedAt?: string;
   startedAt?: string;
-  pausedAt?: string;
-  resumedAt?: string;
   finishedAt?: string;
   reportedAt?: string;
-  status: TaskStatus;
+  status: BookingStatus;
   attachments?: string[];
+}
+
+export function getDisplayStatus(status: BookingStatus): string {
+  const statusMap: Record<BookingStatus, string> = {
+    pending: 'Pending',
+    confirmed: 'Confirmed',
+    in_progress: 'In Progress',
+    completed: 'Completed',
+    cancelled: 'Cancelled',
+  };
+  return statusMap[status];
 }
 
 export interface TaskReport {
@@ -37,19 +35,3 @@ export interface TaskReport {
   customerSignature?: string;
   issues?: string;
 }
-
-export enum PauseReasonEnum {
-  WAITING_MATERIAL = 'WAITING_MATERIAL',
-  CUSTOMER_NOT_HOME = 'CUSTOMER_NOT_HOME',
-  TECHNICAL_ISSUE = 'TECHNICAL_ISSUE',
-  WEATHER = 'WEATHER',
-  OTHER = 'OTHER',
-}
-
-export const PauseReasonLabels: Record<PauseReasonEnum, string> = {
-  [PauseReasonEnum.WAITING_MATERIAL]: 'Waiting for Materials',
-  [PauseReasonEnum.CUSTOMER_NOT_HOME]: 'Customer Not Home',
-  [PauseReasonEnum.TECHNICAL_ISSUE]: 'Technical Issue',
-  [PauseReasonEnum.WEATHER]: 'Weather Conditions',
-  [PauseReasonEnum.OTHER]: 'Other',
-};
