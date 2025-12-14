@@ -1,8 +1,11 @@
 import Button from '@/components/Button';
 import InputWithLabel from '@/components/Input';
+import Constants from 'expo-constants';
+import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const ADD_ONS = [
@@ -10,9 +13,7 @@ const ADD_ONS = [
   { id: 'ironing', label: 'Ironing', price: 50000 },
 ];
 
-const OPTIONS = [
-  { id: 'pet', label: 'House with pet', price: 30000 },
-];
+const OPTIONS = [{ id: 'pet', label: 'House with pet', price: 30000 }];
 
 const DURATIONS = [
   { id: '2h', label: '2 hours', price: 150000 },
@@ -20,6 +21,16 @@ const DURATIONS = [
 ];
 
 const PAYMENT_METHODS = ['Cash', 'Momo', 'ZaloPay', 'Credit Card'];
+
+const GOOGLE_API_KEY = Constants.expoConfig?.extra?.GOOGLE_MAP_KEY;
+
+// Mock coordinates cho Hồ Chí Minh City
+const DEFAULT_REGION = {
+  latitude: 10.762622,
+  longitude: 106.660172,
+  latitudeDelta: 0.01,
+  longitudeDelta: 0.01,
+};
 
 const BookingScreen = () => {
   const { id } = useLocalSearchParams();
@@ -30,6 +41,85 @@ const BookingScreen = () => {
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<string>('Cash');
+
+  // Map states
+  const mapRef = useRef<MapView>(null);
+  const [markerCoords, setMarkerCoords] = useState({
+    latitude: DEFAULT_REGION.latitude,
+    longitude: DEFAULT_REGION.longitude,
+  });
+  const [isGeocoding, setIsGeocoding] = useState(false);
+
+  // Geocode address to coordinates
+  const geocodeAddress = async (addressText: string) => {
+    if (!addressText.trim()) return;
+
+    setIsGeocoding(true);
+    try {
+      const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(addressText)}&key=${GOOGLE_API_KEY}`;
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (data.status === 'OK' && data.results.length > 0) {
+        const location = data.results[0].geometry.location;
+        setMarkerCoords({ latitude: location.lat, longitude: location.lng });
+
+        // Animate camera to new location
+        mapRef.current?.animateCamera({
+          center: {
+            latitude: location.lat,
+            longitude: location.lng,
+          },
+          zoom: 16,
+        });
+      } else {
+        alert('Could not find the address. Please try another address.');
+      }
+    } catch (error) {
+      console.error('Geocoding error:', error);
+      alert('Error finding address. Please check your internet connection.');
+    } finally {
+      setIsGeocoding(false);
+    }
+  };
+
+  // Get current location
+  const getCurrentLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        alert('Permission to access location was denied');
+        return;
+      }
+
+      const location = await Location.getCurrentPositionAsync({});
+      setMarkerCoords({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      });
+
+      // Animate camera to current location
+      mapRef.current?.animateCamera({
+        center: {
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        },
+        zoom: 16,
+      });
+
+      // Reverse geocode to get address
+      const reverseUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${location.coords.latitude},${location.coords.longitude}&key=${GOOGLE_API_KEY}`;
+      const response = await fetch(reverseUrl);
+      const data = await response.json();
+
+      if (data.status === 'OK' && data.results.length > 0) {
+        setAddress(data.results[0].formatted_address);
+      }
+    } catch (error) {
+      console.error('Error getting location:', error);
+      alert('Error getting your location');
+    }
+  };
 
   const basePrice = useMemo(
     () => DURATIONS.find((d) => d.id === durationId)?.price ?? 0,
@@ -88,24 +178,73 @@ const BookingScreen = () => {
       <View className="flex-1">
         <ScrollView className="flex-1 px-5 pt-6 pb-32">
           {/* Địa điểm */}
-          <InputWithLabel
-            label="Address"
-            placeholder="Enter your address"
-            value={address}
-            onChangeText={setAddress}
-          />
-          <Text className="text-xs text-gray-400 mb-2">
-            (Later: integrate Google Maps here)
-          </Text>
-
-          {/* Mock Google Map */}
-          <View className="mb-6 rounded-2xl overflow-hidden border border-gray-200">
-            <View className="h-40 bg-gray-200 items-center justify-center">
-              <Text className="text-gray-500">
-                Google Map preview (mock)
-              </Text>
-            </View>
+          <View className="mb-2">
+            <InputWithLabel
+              label="Address"
+              placeholder="Enter your address"
+              value={address}
+              onChangeText={setAddress}
+            />
           </View>
+
+          <View className="flex-row mb-4 gap-2">
+            <TouchableOpacity
+              className="flex-1 bg-blue-500 py-2 rounded-lg"
+              onPress={() => geocodeAddress(address)}
+              disabled={isGeocoding || !address.trim()}
+            >
+              <Text className="text-white text-center font-medium">
+                {isGeocoding ? 'Searching...' : 'Find on Map'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              className="flex-1 bg-green-500 py-2 rounded-lg"
+              onPress={getCurrentLocation}
+            >
+              <Text className="text-white text-center font-medium">
+                Use My Location
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Google Map */}
+          <View className="mb-6 rounded-2xl overflow-hidden border border-gray-200">
+            <MapView
+              ref={mapRef}
+              provider={PROVIDER_GOOGLE}
+              style={{ height: 250 }}
+              initialRegion={DEFAULT_REGION}
+            >
+              <Marker
+                coordinate={markerCoords}
+                draggable
+                onDragEnd={(e) => {
+                  const coords = e.nativeEvent.coordinate;
+                  setMarkerCoords(coords);
+                  // Reverse geocode when marker is dragged
+                  fetch(
+                    `https://maps.googleapis.com/maps/api/geocode/json?latlng=${coords.latitude},${coords.longitude}&key=${GOOGLE_API_KEY}`,
+                  )
+                    .then((res) => res.json())
+                    .then((data) => {
+                      if (data.status === 'OK' && data.results.length > 0) {
+                        setAddress(data.results[0].formatted_address);
+                      }
+                    })
+                    .catch((err) =>
+                      console.error('Reverse geocode error:', err),
+                    );
+                }}
+                title="Service Location"
+                description={address || 'Drag to adjust location'}
+              />
+            </MapView>
+          </View>
+
+          <Text className="text-xs text-gray-500 mb-4 -mt-2">
+            💡 Tip: Drag the marker to adjust your exact location
+          </Text>
 
           {/* Duration */}
           <Text className="text-base font-semibold mb-2">Duration</Text>
@@ -235,5 +374,3 @@ const BookingScreen = () => {
 };
 
 export default BookingScreen;
-
-
