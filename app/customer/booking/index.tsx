@@ -3,12 +3,22 @@ import InputWithLabel from '@/components/Input';
 import { API_ENDPOINTS, apiCall } from '@/config/api';
 import { CreateBookingRequest } from '@/types/booking.types';
 import { ServiceType } from '@/types/service.types';
+import BottomSheet, {
+  BottomSheetBackdrop,
+  BottomSheetScrollView,
+} from '@gorhom/bottom-sheet';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Constants from 'expo-constants';
 import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -21,9 +31,6 @@ import {
   View,
 } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
-import { SafeAreaView } from 'react-native-safe-area-context';
-
-const PAYMENT_METHODS = ['Cash', 'Momo', 'ZaloPay'];
 
 const GOOGLE_API_KEY = Constants.expoConfig?.extra?.GOOGLE_MAP_KEY;
 
@@ -49,13 +56,17 @@ const BookingScreen = () => {
   // Form state
   const [address, setAddress] = useState('');
   const [selectedDuration, setSelectedDuration] = useState<string>('');
-  const [paymentMethod, setPaymentMethod] = useState<string>('Cash');
 
   // Date/Time state
   const [scheduledDate, setScheduledDate] = useState(new Date());
-  const [startTime, setStartTime] = useState(new Date());
+  const defaultTime = useMemo(() => {
+    const date = new Date();
+    date.setHours(8, 0, 0, 0); // Set to 8:00 AM
+    return date;
+  }, []);
+  const [startTime, setStartTime] = useState(defaultTime);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showStartTimePicker, setShowStartTimePicker] = useState(false);
+  const timePickerBottomSheetRef = useRef<BottomSheet>(null);
 
   // Room counts
   const [bedroomCount, setBedroomCount] = useState(0);
@@ -88,9 +99,12 @@ const BookingScreen = () => {
       );
       setService(response.data);
 
-      // Set default duration if available
+      // Set default duration to the one with smallest multiplier
       if (response.data.durationPrice.length > 0) {
-        setSelectedDuration(response.data.durationPrice[0].id);
+        const sortedDurations = [...response.data.durationPrice].sort(
+          (a, b) => a.priceMultiplier - b.priceMultiplier,
+        );
+        setSelectedDuration(sortedDurations[0].id);
       }
     } catch (error) {
       console.error('Error fetching service:', error);
@@ -172,6 +186,16 @@ const BookingScreen = () => {
   };
 
   // Calculate pricing
+  // Get min/max for each room type
+  const getRoomRange = (roomType: string) => {
+    if (!service) return { min: 0, max: 0 };
+    const rooms = service.roomPricing
+      .filter((r) => r.roomType === roomType)
+      .map((r) => r.roomCount)
+      .sort((a, b) => a - b);
+    return { min: rooms[0] || 0, max: rooms[rooms.length - 1] || 0 };
+  };
+
   const selectedDurationData = useMemo(() => {
     return service?.durationPrice.find((d) => d.id === selectedDuration);
   }, [service, selectedDuration]);
@@ -232,22 +256,32 @@ const BookingScreen = () => {
     return end;
   }, [startTime, selectedDurationData]);
 
-  // Get room count options from service data
-  const bedroomOptions = useMemo(() => {
-    if (!service) return [];
-    return service.roomPricing
-      .filter((r) => r.roomType === 'Bedroom')
-      .map((r) => r.roomCount)
-      .sort((a, b) => a - b);
-  }, [service]);
+  // Generate time slots from 8:00 AM to 6:00 PM (30 min intervals)
+  const timeSlots = useMemo(() => {
+    const slots = [];
+    for (let hour = 8; hour <= 18; hour++) {
+      for (let minute = 0; minute < 60; minute += 30) {
+        if (hour === 18 && minute > 0) break; // Stop at 6:00 PM
+        const date = new Date();
+        date.setHours(hour, minute, 0, 0);
+        slots.push(date);
+      }
+    }
+    return slots;
+  }, []);
 
-  const bathroomOptions = useMemo(() => {
-    if (!service) return [];
-    return service.roomPricing
-      .filter((r) => r.roomType === 'Bathroom')
-      .map((r) => r.roomCount)
-      .sort((a, b) => a - b);
-  }, [service]);
+  const snapPoints = useMemo(() => ['45%'], []);
+
+  const renderBackdrop = useCallback(
+    (props: any) => (
+      <BottomSheetBackdrop
+        {...props}
+        appearsOnIndex={0}
+        disappearsOnIndex={-1}
+      />
+    ),
+    [],
+  );
 
   const handleSubmit = async () => {
     if (!address.trim()) {
@@ -282,7 +316,7 @@ const BookingScreen = () => {
         location: address,
         scheduledStartTime: scheduledStart.toISOString(),
         scheduledEndTime: scheduledEnd.toISOString(),
-        paymentMethod: paymentMethod.toLowerCase(),
+        paymentMethod: 'cash',
         bookingDetails: {
           durationPriceId: selectedDuration || null,
           bedroomCount,
@@ -359,18 +393,18 @@ const BookingScreen = () => {
 
   if (loadingService) {
     return (
-      <SafeAreaView className="flex-1 bg-white">
+      <View className="flex-1 bg-white">
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#1A78F2" />
           <Text className="text-gray-500 mt-3">Loading service details...</Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   if (!service) {
     return (
-      <SafeAreaView className="flex-1 bg-white">
+      <View className="flex-1 bg-white">
         <View className="flex-1 items-center justify-center px-5">
           <Text className="text-gray-600 text-center mb-4">
             Service not found
@@ -382,14 +416,14 @@ const BookingScreen = () => {
             <Text className="text-white font-semibold">Go Back</Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <View className="flex-1 bg-white">
       <View className="flex-1">
-        <ScrollView className="flex-1 px-5 pt-6 pb-32">
+        <ScrollView className="flex-1 px-5 pt-4 pb-32">
           {/* Địa điểm */}
           <View className="mb-2">
             <InputWithLabel
@@ -482,7 +516,7 @@ const BookingScreen = () => {
             {/* Start Time Picker */}
             <TouchableOpacity
               className="flex-row items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200"
-              onPress={() => setShowStartTimePicker(true)}
+              onPress={() => timePickerBottomSheetRef.current?.expand()}
             >
               <Text className="text-gray-600">Start Time</Text>
               <Text className="font-semibold text-gray-800">
@@ -492,118 +526,256 @@ const BookingScreen = () => {
                 })}
               </Text>
             </TouchableOpacity>
-
-            <Text className="text-xs text-gray-500 mt-2 ml-1">
-              {selectedDurationData &&
-                `Duration: ${selectedDurationData.durationHours}h`}
-              {selectedDurationData && ' • '}
-              End time:{' '}
-              {endTime.toLocaleTimeString('en-US', {
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
-            </Text>
           </View>
 
-          {/* Room Details - Dynamic based on service */}
-          {service &&
-            (bedroomOptions.length > 0 || bathroomOptions.length > 0) && (
-              <View className="mb-6">
-                <Text className="text-base font-semibold mb-3">
-                  Room Selection 🏠
-                </Text>
+          {/* Room Selection - Counter Style */}
+          {service && service.roomPricing.length > 0 && (
+            <View className="mb-6">
+              <Text className="text-base font-semibold mb-3">
+                Room Selection 🏠
+              </Text>
 
-                {/* Bedroom Selection */}
-                {bedroomOptions.length > 0 && (
-                  <View className="mb-4">
-                    <Text className="text-gray-600 text-sm mb-2">Bedrooms</Text>
-                    <View className="flex-row flex-wrap gap-2">
-                      {bedroomOptions.map((count) => {
-                        const pricing = service.roomPricing.find(
-                          (r) =>
-                            r.roomType === 'Bedroom' && r.roomCount === count,
-                        );
-                        const active = bedroomCount === count;
-                        return (
-                          <TouchableOpacity
-                            key={count}
-                            className={`px-4 py-3 rounded-xl border flex-1 min-w-[30%] ${
-                              active
-                                ? 'bg-[#1A78F2] border-[#1A78F2]'
-                                : 'bg-gray-50 border-gray-200'
-                            }`}
-                            onPress={() => setBedroomCount(count)}
-                          >
-                            <Text
-                              className={`text-center font-semibold ${
-                                active ? 'text-white' : 'text-gray-700'
-                              }`}
-                            >
-                              {count} {count > 1 ? 'rooms' : 'room'}
-                            </Text>
-                            {pricing && (
-                              <Text
-                                className={`text-center text-xs mt-1 ${
-                                  active ? 'text-white' : 'text-[#1A78F2]'
-                                }`}
-                              >
-                                +{pricing.additionalPrice.toLocaleString()}₫
-                              </Text>
-                            )}
-                          </TouchableOpacity>
-                        );
-                      })}
+              {/* Bedroom */}
+              {service.roomPricing.some((r) => r.roomType === 'Bedroom') && (
+                <View className="mb-3 p-4 bg-gray-50 rounded-xl">
+                  <View className="flex-row justify-between items-center">
+                    <View className="flex-1">
+                      <Text className="font-semibold text-gray-800">
+                        Bedrooms
+                      </Text>
+                      {bedroomCount > 0 && (
+                        <Text className="text-xs text-[#1A78F2] mt-1">
+                          +
+                          {service.roomPricing
+                            .find(
+                              (r) =>
+                                r.roomType === 'Bedroom' &&
+                                r.roomCount === bedroomCount,
+                            )
+                            ?.additionalPrice.toLocaleString() || 0}
+                          ₫
+                        </Text>
+                      )}
+                    </View>
+                    <View className="flex-row items-center gap-3">
+                      <TouchableOpacity
+                        className="w-10 h-10 bg-white border border-gray-300 rounded-lg items-center justify-center"
+                        onPress={() =>
+                          setBedroomCount(
+                            Math.max(
+                              getRoomRange('Bedroom').min,
+                              bedroomCount - 1,
+                            ),
+                          )
+                        }
+                        disabled={bedroomCount <= getRoomRange('Bedroom').min}
+                      >
+                        <Text className="text-xl text-gray-600">-</Text>
+                      </TouchableOpacity>
+                      <Text className="font-bold text-lg min-w-[30px] text-center">
+                        {bedroomCount}
+                      </Text>
+                      <TouchableOpacity
+                        className="w-10 h-10 bg-[#1A78F2] rounded-lg items-center justify-center"
+                        onPress={() =>
+                          setBedroomCount(
+                            Math.min(
+                              getRoomRange('Bedroom').max,
+                              bedroomCount + 1,
+                            ),
+                          )
+                        }
+                        disabled={bedroomCount >= getRoomRange('Bedroom').max}
+                      >
+                        <Text className="text-xl text-white">+</Text>
+                      </TouchableOpacity>
                     </View>
                   </View>
-                )}
+                </View>
+              )}
 
-                {/* Bathroom Selection */}
-                {bathroomOptions.length > 0 && (
-                  <View className="mb-4">
-                    <Text className="text-gray-600 text-sm mb-2">
-                      Bathrooms
-                    </Text>
-                    <View className="flex-row flex-wrap gap-2">
-                      {bathroomOptions.map((count) => {
-                        const pricing = service.roomPricing.find(
-                          (r) =>
-                            r.roomType === 'Bathroom' && r.roomCount === count,
-                        );
-                        const active = bathroomCount === count;
-                        return (
-                          <TouchableOpacity
-                            key={count}
-                            className={`px-4 py-3 rounded-xl border flex-1 min-w-[30%] ${
-                              active
-                                ? 'bg-[#1A78F2] border-[#1A78F2]'
-                                : 'bg-gray-50 border-gray-200'
-                            }`}
-                            onPress={() => setBathroomCount(count)}
-                          >
-                            <Text
-                              className={`text-center font-semibold ${
-                                active ? 'text-white' : 'text-gray-700'
-                              }`}
-                            >
-                              {count} {count > 1 ? 'rooms' : 'room'}
-                            </Text>
-                            {pricing && (
-                              <Text
-                                className={`text-center text-xs mt-1 ${
-                                  active ? 'text-white' : 'text-[#1A78F2]'
-                                }`}
-                              >
-                                +{pricing.additionalPrice.toLocaleString()}₫
-                              </Text>
-                            )}
-                          </TouchableOpacity>
-                        );
-                      })}
+              {/* Bathroom */}
+              {service.roomPricing.some((r) => r.roomType === 'Bathroom') && (
+                <View className="mb-3 p-4 bg-gray-50 rounded-xl">
+                  <View className="flex-row justify-between items-center">
+                    <View className="flex-1">
+                      <Text className="font-semibold text-gray-800">
+                        Bathrooms
+                      </Text>
+                      {bathroomCount > 0 && (
+                        <Text className="text-xs text-[#1A78F2] mt-1">
+                          +
+                          {service.roomPricing
+                            .find(
+                              (r) =>
+                                r.roomType === 'Bathroom' &&
+                                r.roomCount === bathroomCount,
+                            )
+                            ?.additionalPrice.toLocaleString() || 0}
+                          ₫
+                        </Text>
+                      )}
+                    </View>
+                    <View className="flex-row items-center gap-3">
+                      <TouchableOpacity
+                        className="w-10 h-10 bg-white border border-gray-300 rounded-lg items-center justify-center"
+                        onPress={() =>
+                          setBathroomCount(
+                            Math.max(
+                              getRoomRange('Bathroom').min,
+                              bathroomCount - 1,
+                            ),
+                          )
+                        }
+                        disabled={bathroomCount <= getRoomRange('Bathroom').min}
+                      >
+                        <Text className="text-xl text-gray-600">-</Text>
+                      </TouchableOpacity>
+                      <Text className="font-bold text-lg min-w-[30px] text-center">
+                        {bathroomCount}
+                      </Text>
+                      <TouchableOpacity
+                        className="w-10 h-10 bg-[#1A78F2] rounded-lg items-center justify-center"
+                        onPress={() =>
+                          setBathroomCount(
+                            Math.min(
+                              getRoomRange('Bathroom').max,
+                              bathroomCount + 1,
+                            ),
+                          )
+                        }
+                        disabled={bathroomCount >= getRoomRange('Bathroom').max}
+                      >
+                        <Text className="text-xl text-white">+</Text>
+                      </TouchableOpacity>
                     </View>
                   </View>
-                )}
-              </View>
-            )}
+                </View>
+              )}
+
+              {/* Kitchen */}
+              {service.roomPricing.some((r) => r.roomType === 'Kitchen') && (
+                <View className="mb-3 p-4 bg-gray-50 rounded-xl">
+                  <View className="flex-row justify-between items-center">
+                    <View className="flex-1">
+                      <Text className="font-semibold text-gray-800">
+                        Kitchens
+                      </Text>
+                      {kitchenCount > 0 && (
+                        <Text className="text-xs text-[#1A78F2] mt-1">
+                          +
+                          {service.roomPricing
+                            .find(
+                              (r) =>
+                                r.roomType === 'Kitchen' &&
+                                r.roomCount === kitchenCount,
+                            )
+                            ?.additionalPrice.toLocaleString() || 0}
+                          ₫
+                        </Text>
+                      )}
+                    </View>
+                    <View className="flex-row items-center gap-3">
+                      <TouchableOpacity
+                        className="w-10 h-10 bg-white border border-gray-300 rounded-lg items-center justify-center"
+                        onPress={() =>
+                          setKitchenCount(
+                            Math.max(
+                              getRoomRange('Kitchen').min,
+                              kitchenCount - 1,
+                            ),
+                          )
+                        }
+                        disabled={kitchenCount <= getRoomRange('Kitchen').min}
+                      >
+                        <Text className="text-xl text-gray-600">-</Text>
+                      </TouchableOpacity>
+                      <Text className="font-bold text-lg min-w-[30px] text-center">
+                        {kitchenCount}
+                      </Text>
+                      <TouchableOpacity
+                        className="w-10 h-10 bg-[#1A78F2] rounded-lg items-center justify-center"
+                        onPress={() =>
+                          setKitchenCount(
+                            Math.min(
+                              getRoomRange('Kitchen').max,
+                              kitchenCount + 1,
+                            ),
+                          )
+                        }
+                        disabled={kitchenCount >= getRoomRange('Kitchen').max}
+                      >
+                        <Text className="text-xl text-white">+</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+              )}
+
+              {/* Living Room */}
+              {service.roomPricing.some((r) => r.roomType === 'LivingRoom') && (
+                <View className="mb-3 p-4 bg-gray-50 rounded-xl">
+                  <View className="flex-row justify-between items-center">
+                    <View className="flex-1">
+                      <Text className="font-semibold text-gray-800">
+                        Living Rooms
+                      </Text>
+                      {livingRoomCount > 0 && (
+                        <Text className="text-xs text-[#1A78F2] mt-1">
+                          +
+                          {service.roomPricing
+                            .find(
+                              (r) =>
+                                r.roomType === 'LivingRoom' &&
+                                r.roomCount === livingRoomCount,
+                            )
+                            ?.additionalPrice.toLocaleString() || 0}
+                          ₫
+                        </Text>
+                      )}
+                    </View>
+                    <View className="flex-row items-center gap-3">
+                      <TouchableOpacity
+                        className="w-10 h-10 bg-white border border-gray-300 rounded-lg items-center justify-center"
+                        onPress={() =>
+                          setLivingRoomCount(
+                            Math.max(
+                              getRoomRange('LivingRoom').min,
+                              livingRoomCount - 1,
+                            ),
+                          )
+                        }
+                        disabled={
+                          livingRoomCount <= getRoomRange('LivingRoom').min
+                        }
+                      >
+                        <Text className="text-xl text-gray-600">-</Text>
+                      </TouchableOpacity>
+                      <Text className="font-bold text-lg min-w-[30px] text-center">
+                        {livingRoomCount}
+                      </Text>
+                      <TouchableOpacity
+                        className="w-10 h-10 bg-[#1A78F2] rounded-lg items-center justify-center"
+                        onPress={() =>
+                          setLivingRoomCount(
+                            Math.min(
+                              getRoomRange('LivingRoom').max,
+                              livingRoomCount + 1,
+                            ),
+                          )
+                        }
+                        disabled={
+                          livingRoomCount >= getRoomRange('LivingRoom').max
+                        }
+                      >
+                        <Text className="text-xl text-white">+</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+              )}
+            </View>
+          )}
 
           {/* Special Requirements */}
           <View className="mb-6">
@@ -620,40 +792,49 @@ const BookingScreen = () => {
             />
           </View>
 
-          {/* Duration - Dynamic based on service */}
+          {/* Duration - Display as buttons if available */}
           {service && service.durationPrice.length > 0 && (
             <View className="mb-6">
-              <Text className="text-base font-semibold mb-2">Duration ⏰</Text>
-              <View className="flex-row flex-wrap gap-2">
-                {service.durationPrice.map((duration) => {
-                  const active = selectedDuration === duration.id;
-                  return (
-                    <TouchableOpacity
-                      key={duration.id}
-                      className={`px-4 py-3 rounded-xl border flex-1 min-w-[30%] ${
-                        active
-                          ? 'bg-[#1A78F2] border-[#1A78F2]'
-                          : 'bg-gray-50 border-gray-200'
-                      }`}
-                      onPress={() => setSelectedDuration(duration.id)}
-                    >
-                      <Text
-                        className={`text-center font-semibold ${
-                          active ? 'text-white' : 'text-gray-700'
+              <Text className="text-base font-semibold mb-3">Duration ⏰</Text>
+              <View>
+                {[...service.durationPrice]
+                  .sort((a, b) => a.priceMultiplier - b.priceMultiplier)
+                  .map((duration) => {
+                    const active = selectedDuration === duration.id;
+                    return (
+                      <TouchableOpacity
+                        key={duration.id}
+                        className={`flex-row justify-between items-center px-4 py-3 rounded-xl border mb-2 ${
+                          active
+                            ? 'bg-[#1A78F2] border-[#1A78F2]'
+                            : 'bg-gray-50 border-gray-200'
                         }`}
+                        onPress={() => setSelectedDuration(duration.id)}
                       >
-                        {duration.durationHours}h
-                      </Text>
-                      <Text
-                        className={`text-center text-xs mt-1 ${
-                          active ? 'text-white' : 'text-[#1A78F2]'
-                        }`}
-                      >
-                        ×{duration.priceMultiplier}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
+                        <Text
+                          className={`font-semibold ${
+                            active ? 'text-white' : 'text-gray-700'
+                          }`}
+                        >
+                          {duration.durationHours} hour
+                          {duration.durationHours > 1 ? 's' : ''}
+                        </Text>
+                        {duration.priceMultiplier > 0 && (
+                          <Text
+                            className={`font-semibold ${
+                              active ? 'text-white' : 'text-[#1A78F2]'
+                            }`}
+                          >
+                            +
+                            {(
+                              basePrice * duration.priceMultiplier
+                            ).toLocaleString()}
+                            ₫
+                          </Text>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
               </View>
             </View>
           )}
@@ -665,18 +846,25 @@ const BookingScreen = () => {
               <Text>Base Price</Text>
               <Text>{basePrice.toLocaleString()} ₫</Text>
             </View>
-            {selectedDurationData && (
-              <View className="flex-row justify-between mb-1">
-                <Text>Duration ({selectedDurationData.durationHours}h)</Text>
-                <Text>×{selectedDurationData.priceMultiplier}</Text>
-              </View>
-            )}
             {roomPriceTotal > 0 && (
               <View className="flex-row justify-between mb-1">
                 <Text>Room pricing</Text>
                 <Text>+{roomPriceTotal.toLocaleString()} ₫</Text>
               </View>
             )}
+            {selectedDurationData &&
+              selectedDurationData.priceMultiplier > 0 && (
+                <View className="flex-row justify-between mb-1">
+                  <Text>Duration ({selectedDurationData.durationHours}h)</Text>
+                  <Text>
+                    +
+                    {(
+                      basePrice * selectedDurationData.priceMultiplier
+                    ).toLocaleString()}{' '}
+                    ₫
+                  </Text>
+                </View>
+              )}
             <View className="border-t border-gray-300 my-2" />
             <View className="flex-row justify-between">
               <Text className="font-bold text-lg">Total</Text>
@@ -684,29 +872,6 @@ const BookingScreen = () => {
                 {total.toLocaleString()} ₫
               </Text>
             </View>
-          </View>
-
-          {/* Payment */}
-          <Text className="text-base font-semibold mt-6 mb-2">
-            Payment method 💳
-          </Text>
-          <View className="flex-row flex-wrap">
-            {PAYMENT_METHODS.map((method) => {
-              const active = paymentMethod === method;
-              return (
-                <TouchableOpacity
-                  key={method}
-                  className={`px-4 py-2 mr-2 mb-2 rounded-full border ${
-                    active ? 'bg-[#1A78F2] border-[#1A78F2]' : 'border-gray-300'
-                  }`}
-                  onPress={() => setPaymentMethod(method)}
-                >
-                  <Text className={active ? 'text-white' : 'text-gray-700'}>
-                    {method}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
           </View>
         </ScrollView>
       </View>
@@ -767,61 +932,54 @@ const BookingScreen = () => {
         )
       )}
 
-      {/* Start Time Picker Modal */}
-      {Platform.OS === 'ios' ? (
-        <Modal
-          visible={showStartTimePicker}
-          transparent={true}
-          animationType="slide"
+      {/* Start Time Picker Bottom Sheet */}
+      <BottomSheet
+        ref={timePickerBottomSheetRef}
+        snapPoints={snapPoints}
+        index={-1}
+        backdropComponent={renderBackdrop}
+        enablePanDownToClose
+      >
+        <View className="px-4 pb-2">
+          <Text className="font-semibold text-lg text-center mb-4">
+            Select Start Time
+          </Text>
+        </View>
+        <BottomSheetScrollView
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 80 }}
         >
-          <View
-            className="flex-1 justify-end"
-            style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
-          >
-            <View
-              className="bg-white rounded-t-3xl"
-              style={{ paddingBottom: 40 }}
-            >
-              <View className="flex-row justify-between items-center p-4 border-b border-gray-200">
-                <TouchableOpacity onPress={() => setShowStartTimePicker(false)}>
-                  <Text className="text-[#1A78F2] text-base">Cancel</Text>
-                </TouchableOpacity>
-                <Text className="font-semibold text-base">
-                  Select Start Time
+          {timeSlots.map((slot, index) => {
+            const isSelected =
+              startTime.getHours() === slot.getHours() &&
+              startTime.getMinutes() === slot.getMinutes();
+            return (
+              <TouchableOpacity
+                key={index}
+                className={`p-4 rounded-xl mb-2 ${
+                  isSelected
+                    ? 'bg-[#1A78F2] border-2 border-[#1A78F2]'
+                    : 'bg-gray-50 border border-gray-200'
+                }`}
+                onPress={() => {
+                  setStartTime(slot);
+                  timePickerBottomSheetRef.current?.close();
+                }}
+              >
+                <Text
+                  className={`text-center font-semibold text-base ${
+                    isSelected ? 'text-white' : 'text-gray-700'
+                  }`}
+                >
+                  {slot.toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
                 </Text>
-                <TouchableOpacity onPress={() => setShowStartTimePicker(false)}>
-                  <Text className="text-[#1A78F2] text-base font-semibold">
-                    Done
-                  </Text>
-                </TouchableOpacity>
-              </View>
-              <View style={{ height: 260 }}>
-                <DateTimePicker
-                  value={startTime}
-                  mode="time"
-                  display="spinner"
-                  onChange={(event, selectedTime) => {
-                    if (selectedTime) setStartTime(selectedTime);
-                  }}
-                  textColor="#000000"
-                />
-              </View>
-            </View>
-          </View>
-        </Modal>
-      ) : (
-        showStartTimePicker && (
-          <DateTimePicker
-            value={startTime}
-            mode="time"
-            display="default"
-            onChange={(event, selectedTime) => {
-              setShowStartTimePicker(false);
-              if (selectedTime) setStartTime(selectedTime);
-            }}
-          />
-        )
-      )}
+              </TouchableOpacity>
+            );
+          })}
+        </BottomSheetScrollView>
+      </BottomSheet>
 
       {/* Sticky confirm button */}
       <View className="px-5 pb-4 pt-2 border-t border-gray-200 bg-white">
@@ -840,7 +998,7 @@ const BookingScreen = () => {
           )}
         </Button>
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 
