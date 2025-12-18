@@ -1,21 +1,83 @@
 import { API_ENDPOINTS, apiCall } from '@/config/api';
 import { ServiceType, ServiceTypeResponse } from '@/types/service.types';
+import {
+  FontAwesome5,
+  Ionicons,
+  MaterialCommunityIcons,
+} from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
 
-// Icon mapping for service types
-const SERVICE_ICONS: Record<string, string> = {
-  Standard: '🧹',
-  'Deep Clean': '🧴',
-  'Post Party': '🎉',
-  'Post Construction': '🏗️',
-  Monthly: '📋',
-  'Home Moving': '🚚',
-  Industrial: '🏭',
-  'A/C Cleaning': '❄️',
-  Upholstery: '🛋️',
-  'Child Care': '👶',
+// Icon mapping for service types with MaterialCommunityIcons
+
+const SERVICE_ICONS: Record<
+  string,
+  {
+    name: string;
+    library: string;
+    color: string;
+  }
+> = {
+  Standard: {
+    name: 'broom',
+    library: 'MaterialCommunityIcons',
+    color: '#FB923C', // cam nhạt
+  },
+
+  'Deep Clean': {
+    name: 'spray',
+    library: 'MaterialCommunityIcons',
+    color: '#F97316',
+  },
+
+  'Post Party': {
+    name: 'bottle-wine',
+    library: 'MaterialCommunityIcons',
+    color: '#EC4899',
+  },
+
+  'Post Construction': {
+    name: 'hard-hat',
+    library: 'FontAwesome5',
+    color: '#F59E0B',
+  },
+
+  Monthly: {
+    name: 'calendar-month-outline',
+    library: 'MaterialCommunityIcons',
+    color: '#34D399',
+  },
+
+  'Home Moving': {
+    name: 'truck-outline',
+    library: 'MaterialCommunityIcons',
+    color: '#FB7185',
+  },
+
+  'Industrial Cleaning': {
+    name: 'factory',
+    library: 'MaterialCommunityIcons',
+    color: '#818CF8',
+  },
+
+  'A/C Cleaning': {
+    name: 'air-conditioner',
+    library: 'MaterialCommunityIcons',
+    color: '#38BDF8', // giống icon máy lạnh hình bạn gửi
+  },
+
+  Upholstery: {
+    name: 'sofa-outline',
+    library: 'MaterialCommunityIcons',
+    color: '#FDBA74',
+  },
+
+  'Child Care': {
+    name: 'mother-nurse',
+    library: 'MaterialCommunityIcons',
+    color: '#F9A8D4',
+  },
 };
 
 const ServiceGrid = () => {
@@ -44,8 +106,14 @@ const ServiceGrid = () => {
     }
   };
 
-  const getServiceIcon = (name: string): string => {
-    return SERVICE_ICONS[name] || '🔧';
+  const getServiceIcon = (name: string) => {
+    return (
+      SERVICE_ICONS[name] || {
+        name: 'wrench',
+        library: 'MaterialCommunityIcons' as const,
+        color: '#6B7280',
+      }
+    );
   };
 
   if (loading) {
@@ -99,9 +167,22 @@ const ServiceGrid = () => {
             {/* Card */}
             <View className="flex justify-center items-center">
               <View className="bg-blue-50 w-20 rounded-3xl items-center justify-center aspect-square">
-                <Text className="text-4xl mb-2">
-                  {getServiceIcon(service.name)}
-                </Text>
+                {(() => {
+                  const icon = getServiceIcon(service.name);
+                  const IconComponent =
+                    icon.library === 'MaterialCommunityIcons'
+                      ? MaterialCommunityIcons
+                      : icon.library === 'FontAwesome5'
+                        ? FontAwesome5
+                        : Ionicons;
+                  return (
+                    <IconComponent
+                      name={icon.name}
+                      size={36}
+                      color={icon.color}
+                    />
+                  );
+                })()}
               </View>
             </View>
 
@@ -111,9 +192,9 @@ const ServiceGrid = () => {
             </Text>
 
             {/* Price */}
-            <Text className="text-[#1A78F2] text-[10px] font-semibold text-center mt-1">
+            {/* <Text className="text-[#1A78F2] text-[10px] font-semibold text-center mt-1">
               {service.basePrice.toLocaleString()}₫
-            </Text>
+            </Text> */}
           </TouchableOpacity>
         ))}
       </View>
@@ -122,4 +203,3 @@ const ServiceGrid = () => {
 };
 
 export default ServiceGrid;
-
