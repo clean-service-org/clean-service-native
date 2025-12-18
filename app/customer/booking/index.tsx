@@ -1,6 +1,7 @@
 import Button from '@/components/Button';
 import InputWithLabel from '@/components/Input';
 import { API_ENDPOINTS, apiCall } from '@/config/api';
+import { useAuth } from '@/contexts/AuthContext';
 import { CreateBookingRequest } from '@/types/booking.types';
 import { ServiceType } from '@/types/service.types';
 import BottomSheet, {
@@ -34,9 +35,6 @@ import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 
 const GOOGLE_API_KEY = Constants.expoConfig?.extra?.GOOGLE_MAP_KEY;
 
-// Hardcoded customer ID as requested
-const CUSTOMER_ID = 'user_2np2lwmeO5VzPQTLKeaYgCFPhnF';
-
 // Mock coordinates cho Hồ Chí Minh City
 const DEFAULT_REGION = {
   latitude: 10.762622,
@@ -48,6 +46,7 @@ const DEFAULT_REGION = {
 const BookingScreen = () => {
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const { authToken } = useAuth();
 
   // Service data
   const [service, setService] = useState<ServiceType | null>(null);
@@ -317,7 +316,7 @@ const BookingScreen = () => {
 
       // Prepare booking data
       const bookingData: CreateBookingRequest = {
-        customerId: CUSTOMER_ID,
+        customerId: authToken || '', // Sử dụng authToken từ AuthContext
         serviceTypeId: id as string, // Use service ID from params
         location: address,
         scheduledStartTime: scheduledStart.toISOString(),
