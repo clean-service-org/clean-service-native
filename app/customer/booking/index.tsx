@@ -58,7 +58,13 @@ const BookingScreen = () => {
   const [selectedDuration, setSelectedDuration] = useState<string>('');
 
   // Date/Time state
-  const [scheduledDate, setScheduledDate] = useState(new Date());
+  const tomorrow = useMemo(() => {
+    const date = new Date();
+    date.setDate(date.getDate() + 1);
+    date.setHours(0, 0, 0, 0);
+    return date;
+  }, []);
+  const [scheduledDate, setScheduledDate] = useState(tomorrow);
   const defaultTime = useMemo(() => {
     const date = new Date();
     date.setHours(8, 0, 0, 0); // Set to 8:00 AM
@@ -902,7 +908,13 @@ const BookingScreen = () => {
                   </Text>
                 </TouchableOpacity>
               </View>
-              <View style={{ height: 260 }}>
+              <View
+                style={{
+                  height: 260,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
                 <DateTimePicker
                   value={scheduledDate}
                   mode="date"
@@ -910,8 +922,9 @@ const BookingScreen = () => {
                   onChange={(event, selectedDate) => {
                     if (selectedDate) setScheduledDate(selectedDate);
                   }}
-                  minimumDate={new Date()}
+                  minimumDate={tomorrow}
                   textColor="#000000"
+                  style={{ width: '100%' }}
                 />
               </View>
             </View>
@@ -927,7 +940,7 @@ const BookingScreen = () => {
               setShowDatePicker(false);
               if (selectedDate) setScheduledDate(selectedDate);
             }}
-            minimumDate={new Date()}
+            minimumDate={tomorrow}
           />
         )
       )}
