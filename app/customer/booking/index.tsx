@@ -222,7 +222,7 @@ const BookingScreen = () => {
   const basePrice = service?.basePrice || 0;
   const durationMultiplier = selectedDurationData?.priceMultiplier || 0;
   // Formula: basePrice + roomPrices + (basePrice * durationMultiplier)
-  const total = basePrice + roomPriceTotal + (basePrice * durationMultiplier);
+  const total = basePrice + roomPriceTotal + basePrice * durationMultiplier;
 
   // Calculate end time based on start time + duration
   const endTime = useMemo(() => {
@@ -845,4 +845,3 @@ const BookingScreen = () => {
 };
 
 export default BookingScreen;
-
