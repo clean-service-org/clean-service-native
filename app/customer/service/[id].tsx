@@ -1,3 +1,4 @@
+import { getServiceBanner } from '@/common/serviceBanners';
 import Button from '@/components/Button';
 import { API_ENDPOINTS, apiCall } from '@/config/api';
 import { ServiceType } from '@/types/service.types';
@@ -66,9 +67,7 @@ const ServiceDetail = () => {
           <View className="w-full h-80 bg-[#1a78f3] px-5 pt-16 pb-6">
             <View className="flex-1 bg-white rounded-3xl overflow-hidden shadow-xl">
               <Image
-                source={{
-                  uri: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=800',
-                }}
+                source={getServiceBanner(service.name)}
                 className="w-full h-full"
                 resizeMode="cover"
               />
@@ -90,59 +89,24 @@ const ServiceDetail = () => {
                 </Text>
               </View>
               <Text className="text-xl font-bold text-[#1A78F2]">
-                {service.basePrice.toLocaleString()}₫
+                Starting from {service.basePrice.toLocaleString()}₫
               </Text>
             </View>
 
-            {/* Description */}
+            {/* Category Description */}
             <Text className="text-base text-gray-600 leading-6 mb-5">
-              {service.description ||
-                'Professional cleaning service at your home'}
+              {service.category.description}
             </Text>
 
-            {/* Room Pricing Info */}
-            {service.roomPricing.length > 0 && (
+            {/* Service Description */}
+            {service.description && (
               <View className="mb-6">
                 <Text className="text-lg font-bold text-gray-800 mb-3">
-                  Room Pricing
+                  Service Details
                 </Text>
-                {service.roomPricing.map((room, index) => (
-                  <View
-                    key={room.id}
-                    className="flex-row justify-between items-center mb-2 bg-gray-50 p-3 rounded-xl"
-                  >
-                    <Text className="text-gray-700">
-                      {room.roomType} ({room.roomCount} room
-                      {room.roomCount > 1 ? 's' : ''})
-                    </Text>
-                    <Text className="text-[#1A78F2] font-semibold">
-                      +{room.additionalPrice.toLocaleString()}₫
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            )}
-
-            {/* Duration Pricing Info */}
-            {service.durationPrice.length > 0 && (
-              <View className="mb-6">
-                <Text className="text-lg font-bold text-gray-800 mb-3">
-                  Duration Options
+                <Text className="text-base text-gray-600 leading-6">
+                  {service.description}
                 </Text>
-                {service.durationPrice.map((duration) => (
-                  <View
-                    key={duration.id}
-                    className="flex-row justify-between items-center mb-2 bg-gray-50 p-3 rounded-xl"
-                  >
-                    <Text className="text-gray-700">
-                      {duration.durationHours} hour
-                      {duration.durationHours > 1 ? 's' : ''}
-                    </Text>
-                    <Text className="text-[#1A78F2] font-semibold">
-                      ×{duration.priceMultiplier}
-                    </Text>
-                  </View>
-                ))}
               </View>
             )}
 
@@ -216,4 +180,3 @@ const ServiceDetail = () => {
 };
 
 export default ServiceDetail;
-
