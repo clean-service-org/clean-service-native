@@ -1,12 +1,86 @@
 import Button from '@/components/Button';
+import { useAuth } from '@/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import Toast from 'react-native-toast-message';
 
 const LoginScreen = () => {
   const [showPassword, setShowPassword] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const { login } = useAuth();
+
+  const handleLogin = async () => {
+    // Validate inputs
+    if (!phoneNumber.trim()) {
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Please enter your phone number',
+        position: 'top',
+        topOffset: 60,
+      });
+      return;
+    }
+    if (phoneNumber.trim().length < 10) {
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Invalid phone number',
+        position: 'top',
+        topOffset: 60,
+      });
+      return;
+    }
+    if (!password.trim()) {
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Please enter your password',
+        position: 'top',
+        topOffset: 60,
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await login(phoneNumber, password);
+      // Đăng nhập thành công, hiển thị toast và chuyển trang
+      Toast.show({
+        type: 'success',
+        text1: 'Success',
+        text2: 'Login successful!',
+        position: 'top',
+        topOffset: 60,
+      });
+      setTimeout(() => {
+        router.replace('/customer');
+      }, 500);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'An error occurred';
+      Toast.show({
+        type: 'error',
+        text1: 'Login Failed',
+        text2: errorMessage,
+        position: 'top',
+        topOffset: 60,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <View className="flex-1 bg-white px-6 pt-8">
@@ -21,13 +95,15 @@ const LoginScreen = () => {
         <Text className="text-sm font-semibold text-gray-700 mb-2">
           Phone number
         </Text>
-        <View className="flex-row items-center border border-gray-300 rounded-xl px-3 py-3 h-14">
-          <Text className="text-lg mr-2">🇻🇳</Text>
-          <Text className="text-gray-700 mr-2">+84</Text>
+        <View className="flex-row items-center border border-gray-300 rounded-xl px-4 py-3 h-14">
           <TextInput
             placeholder="Enter your phone number"
+            placeholderTextColor="#9CA3AF"
             keyboardType="number-pad"
             className="flex-1 text-gray-700"
+            value={phoneNumber}
+            onChangeText={setPhoneNumber}
+            editable={!isLoading}
           />
         </View>
       </View>
@@ -39,32 +115,35 @@ const LoginScreen = () => {
         </Text>
         <View className="flex-row items-center border border-gray-300 rounded-xl px-3 py-2.5 h-14">
           <TextInput
+            key={showPassword ? 'visible' : 'hidden'}
             placeholder="Enter your password"
+            placeholderTextColor="#9CA3AF"
             secureTextEntry={!showPassword}
             className="flex-1 text-gray-700"
-            textAlignVertical="center"
-            style={{ textAlignVertical: 'center', paddingVertical: 0 }}
+            value={password}
+            onChangeText={setPassword}
+            editable={!isLoading}
           />
-          <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+          <TouchableOpacity
+            onPress={() => setShowPassword((prev) => !prev)}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Ionicons
-              name={showPassword ? 'eye-off' : 'eye'}
-              size={20}
-              color="gray"
+              name={showPassword ? 'eye-outline' : 'eye-off-outline'}
+              size={22}
+              color="#6B7280"
             />
           </TouchableOpacity>
         </View>
       </View>
 
       {/* Login Button */}
-      <Button
-        className="rounded-xl"
-        onPress={() => {
-          // TODO: validate + call API đăng nhập
-          // Sau khi login thành công thì vào tab chính
-          router.replace('/customer');
-        }}
-      >
-        <Text className=" text-center text-base font-semibold">Log in</Text>
+      <Button className="rounded-xl" onPress={handleLogin} disabled={isLoading}>
+        {isLoading ? (
+          <ActivityIndicator color="white" />
+        ) : (
+          <Text className="text-center text-base font-semibold">Log in</Text>
+        )}
       </Button>
 
       {/* Footer Links */}
