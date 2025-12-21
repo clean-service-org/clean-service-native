@@ -1,7 +1,8 @@
+import Logo from '@/assets/images/Logo.svg';
 import Button from '@/components/Button';
 import { useAuth } from '@/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
@@ -18,6 +19,7 @@ const LoginScreen = () => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const { returnUrl } = useLocalSearchParams();
   const { login } = useAuth();
 
   const handleLogin = async () => {
@@ -65,7 +67,12 @@ const LoginScreen = () => {
         topOffset: 60,
       });
       setTimeout(() => {
-        router.replace('/customer');
+        // Nếu có returnUrl thì redirect về đó, không thì về trang chủ
+        if (returnUrl && typeof returnUrl === 'string') {
+          router.replace(returnUrl as any);
+        } else {
+          router.replace('/customer');
+        }
       }, 500);
     } catch (error) {
       const errorMessage =
@@ -84,6 +91,14 @@ const LoginScreen = () => {
 
   return (
     <View className="flex-1 bg-white px-6 pt-8">
+      {/* Logo */}
+      <View className="flex-col justify-center items-center mb-8 gap-2">
+        <Logo width={113.65} height={45} />
+        <Text className="text-[#303030] text-[12px] italic font-light leading-normal tracking-[0.036px]">
+          For Customer
+        </Text>
+      </View>
+
       {/* Heading */}
       <View className="mb-8">
         <Text className="text-2xl font-bold text-[#1a1a1a]">Welcome back,</Text>
@@ -155,8 +170,11 @@ const LoginScreen = () => {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity onPress={() => {}}>
-          <Text className="text-[#1A78F2] text-center">Forgot password</Text>
+        <TouchableOpacity onPress={() => router.push('/employee/signin')}>
+          <Text className="text-gray-600 text-center">
+            Are you a helper?{' '}
+            <Text className="text-[#1A78F2] font-semibold">Sign in here</Text>
+          </Text>
         </TouchableOpacity>
       </View>
     </View>

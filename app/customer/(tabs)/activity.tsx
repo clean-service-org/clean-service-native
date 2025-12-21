@@ -1,3 +1,4 @@
+import Logo from '@/assets/images/Logo.svg';
 import { API_ENDPOINTS, apiCall } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
 import type {
@@ -195,6 +196,12 @@ const Activity = () => {
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View className="items-center justify-center py-10">
+            <View className="flex-col justify-center items-center mb-6 gap-2">
+              <Logo width={113.65} height={45} />
+              <Text className="text-[#303030] text-[12px] italic font-light leading-normal tracking-[0.036px]">
+                For Customer
+              </Text>
+            </View>
             <Text className="text-gray-500">No bookings found</Text>
           </View>
         }

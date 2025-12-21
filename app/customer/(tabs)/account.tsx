@@ -1,3 +1,4 @@
+import Logo from '@/assets/images/Logo.svg';
 import Button from '@/components/Button';
 
 import { useAuth } from '@/contexts/AuthContext';
@@ -94,7 +95,14 @@ const Account = () => {
           </Text>
         </View>
 
-        <View className="flex-1 px-5 justify-center items-center">
+        <View className="flex-1 px-5 mt-5 justify-start items-center">
+          <View className="flex-col justify-center items-center mb-8 gap-2">
+            <Logo width={113.65} height={45} />
+            <Text className="text-[#303030] text-[12px] italic font-light leading-normal tracking-[0.036px]">
+              For Customer
+            </Text>
+          </View>
+
           <Text className="text-gray-600 text-center mb-8 text-base">
             Please login to view your account information
           </Text>
@@ -107,8 +115,8 @@ const Account = () => {
           </Button>
 
           <Button
-            className="rounded-xl bg-gray-100 w-full"
-            textClassName="text-[#1A78F2]"
+            className="rounded-xl bg-gray-200 w-full"
+            textClassName="text-[#1A78F1]"
             onPress={() => router.push('/customer/(auth)/signup')}
           >
             Create Account
