@@ -46,7 +46,7 @@ const DEFAULT_REGION = {
 const BookingScreen = () => {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const { authToken } = useAuth();
+  const { userData } = useAuth();
 
   // Service data
   const [service, setService] = useState<ServiceType | null>(null);
@@ -316,7 +316,7 @@ const BookingScreen = () => {
 
       // Prepare booking data
       const bookingData: CreateBookingRequest = {
-        customerId: authToken || '', // Sử dụng authToken từ AuthContext
+        customerId: userData?.userId || '',
         serviceTypeId: id as string, // Use service ID from params
         location: address,
         scheduledStartTime: scheduledStart.toISOString(),

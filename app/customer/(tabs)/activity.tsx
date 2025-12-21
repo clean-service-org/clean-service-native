@@ -1,17 +1,31 @@
+import { API_ENDPOINTS, apiCall } from '@/config/api';
+import { useAuth } from '@/contexts/AuthContext';
+import type {
+  SchedulerBooking,
+  SchedulerResponse,
+} from '@/types/booking.types';
 import BottomSheet, {
   BottomSheetBackdrop,
   BottomSheetView,
 } from '@gorhom/bottom-sheet';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { API_ENDPOINTS, apiCall } from '@/config/api';
-import type { SchedulerBooking, SchedulerResponse } from '@/types/booking.types';
-
-// Hardcoded customer ID
-const CUSTOMER_ID = 'user_2np2lwmeO5VzPQTLKeaYgCFPhnF';
 
 const Activity = () => {
+  const { userData } = useAuth();
   const [bookings, setBookings] = useState<SchedulerBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -23,14 +37,24 @@ const Activity = () => {
   // Fetch bookings from API
   useEffect(() => {
     const fetchBookings = async () => {
+      if (!userData?.userId) {
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         setError(null);
-        const response = await apiCall<{ statusCode: number; message: string; data: SchedulerResponse }>(
-          API_ENDPOINTS.scheduler.byCustomerId(CUSTOMER_ID)
-        );
-        
-        if (response.statusCode === 200 && response.data) {
+        const response = await apiCall<{
+          statusCode: number | string;
+          message: string;
+          data: SchedulerResponse;
+        }>(API_ENDPOINTS.scheduler.byCustomerId(userData.userId));
+
+        if (
+          (response.statusCode === 200 || response.statusCode === 'OK') &&
+          response.data
+        ) {
           setBookings(response.data.results);
         }
       } catch (err) {
@@ -42,7 +66,7 @@ const Activity = () => {
     };
 
     fetchBookings();
-  }, []);
+  }, [userData?.userId]);
 
   const backDrop = useCallback(
     (props: any) => (
@@ -161,9 +185,7 @@ const Activity = () => {
             </Text>
             <Text className="text-gray-600 mt-1 text-sm">
               Status:{' '}
-              <Text className={getStatusColor(item.status)}>
-                {item.status}
-              </Text>
+              <Text className={getStatusColor(item.status)}>{item.status}</Text>
             </Text>
             <Text className="text-[#1A78F2] text-xs mt-2">
               Tap to see details
@@ -183,6 +205,7 @@ const Activity = () => {
         ref={bottomSheetRef}
         snapPoints={snapPoints}
         index={-1}
+        enablePanDownToClose={true}
         backdropComponent={backDrop}
         onChange={(index) => {
           if (index === -1) {
@@ -204,15 +227,10 @@ const Activity = () => {
 
               <View className="mb-3">
                 <Text className="text-gray-500 text-sm">Status</Text>
-                <Text className={`text-base font-semibold ${getStatusColor(selected.status)}`}>
+                <Text
+                  className={`text-base font-semibold ${getStatusColor(selected.status)}`}
+                >
                   {selected.status}
-                </Text>
-              </View>
-
-              <View className="mb-3">
-                <Text className="text-gray-500 text-sm">Payment Status</Text>
-                <Text className="text-base font-semibold text-gray-800">
-                  {selected.paymentStatus}
                 </Text>
               </View>
 
@@ -225,27 +243,26 @@ const Activity = () => {
 
               <View className="mb-3">
                 <Text className="text-gray-500 text-sm">Address</Text>
-                <Text className="text-gray-800">
-                  {selected.location}
-                </Text>
-              </View>
-
-              <View className="mb-3">
-                <Text className="text-gray-500 text-sm">Payment method</Text>
-                <Text className="text-gray-800 capitalize">{selected.paymentMethod}</Text>
+                <Text className="text-gray-800">{selected.location}</Text>
               </View>
 
               {selected.helper && (
                 <View className="mb-3">
                   <Text className="text-gray-500 text-sm">Helper</Text>
-                  <Text className="text-gray-800">{selected.helper.user.fullName}</Text>
-                  <Text className="text-gray-500 text-xs">{selected.helper.user.email}</Text>
+                  <Text className="text-gray-800">
+                    {selected.helper.user.fullName}
+                  </Text>
+                  <Text className="text-gray-500 text-xs">
+                    {selected.helper.user.email}
+                  </Text>
                 </View>
               )}
 
               {selected.bookingDetails && (
                 <View className="mb-3">
-                  <Text className="text-gray-500 text-sm mb-1">Room Details</Text>
+                  <Text className="text-gray-500 text-sm mb-1">
+                    Room Details
+                  </Text>
                   {selected.bookingDetails.bedroomCount > 0 && (
                     <Text className="text-gray-700 text-sm">
                       • Bedrooms: {selected.bookingDetails.bedroomCount}
@@ -277,4 +294,3 @@ const Activity = () => {
 };
 
 export default Activity;
-
