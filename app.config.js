@@ -10,6 +10,9 @@ module.exports = {
     scheme: 'cleanservicenative',
     userInterfaceStyle: 'automatic',
     newArchEnabled: true,
+
+    platforms: ['ios', 'android'],
+
     ios: {
       supportsTablet: true,
       config: {
@@ -38,10 +41,13 @@ module.exports = {
       },
       permissions: ['ACCESS_COARSE_LOCATION', 'ACCESS_FINE_LOCATION'],
     },
-    web: {
-      output: 'static',
-      favicon: './assets/images/favicon.png',
-    },
+
+    // web: {
+    //   output: 'static',
+    //   bundler: 'metro',
+    //   favicon: './assets/images/favicon.png',
+    // },
+
     plugins: [
       'expo-router',
       [
