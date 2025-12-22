@@ -7,7 +7,13 @@ import {
 } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  ImageBackground,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 // Icon mapping for service types with MaterialCommunityIcons
 
@@ -142,62 +148,77 @@ const ServiceGrid = () => {
   }
 
   return (
-    <View className="px-4 mt-6">
+    <View className="mt-6">
       {/* Header */}
-      <View className="flex-row justify-between items-center mb-6">
-        <Text className="text-2xl font-bold text-gray-900">Service</Text>
+      <View className="flex-row justify-between items-center mb-6 px-4">
+        <Text className="text-2xl font-bold text-gray-900">Services</Text>
         <View className="flex-row items-center">
-          <Text className="text-green-500 text-lg font-semibold mr-2">
+          <Text className="text-blue-600 text-lg font-semibold mr-2">
             {services.length} available
           </Text>
         </View>
       </View>
 
-      {/* Service Grid */}
-      <View className="flex-row flex-wrap justify-between">
-        {services.map((service, index) => (
-          <TouchableOpacity
-            key={service.id}
-            className="w-[23%] mb-4"
-            activeOpacity={0.7}
-            onPress={() => {
-              router.push(`/customer/service/${service.id}`);
-            }}
-          >
-            {/* Card */}
-            <View className="flex justify-center items-center">
-              <View className="bg-blue-50 w-20 rounded-3xl items-center justify-center aspect-square">
-                {(() => {
-                  const icon = getServiceIcon(service.name);
-                  const IconComponent =
-                    icon.library === 'MaterialCommunityIcons'
-                      ? MaterialCommunityIcons
-                      : icon.library === 'FontAwesome5'
-                        ? FontAwesome5
-                        : Ionicons;
-                  return (
-                    <IconComponent
-                      name={icon.name}
-                      size={36}
-                      color={icon.color}
-                    />
-                  );
-                })()}
-              </View>
-            </View>
+      <ImageBackground
+        source={require('@/assets/images/service-banner.png')}
+        style={{ width: '100%' }}
+        resizeMode="cover"
+      >
+        <View className="px-4 py-6">
+          {/* Service Grid */}
+          <View className="flex-row flex-wrap justify-between">
+            {services.map((service, index) => (
+              <TouchableOpacity
+                key={service.id}
+                className="w-[23%] mb-4"
+                activeOpacity={0.7}
+                onPress={() => {
+                  router.push(`/customer/service/${service.id}`);
+                }}
+              >
+                {/* Card */}
+                <View className="flex justify-center items-center">
+                  <View className="bg-white w-20 rounded-3xl items-center justify-center aspect-square shadow-md">
+                    {(() => {
+                      const icon = getServiceIcon(service.name);
+                      const IconComponent =
+                        icon.library === 'MaterialCommunityIcons'
+                          ? MaterialCommunityIcons
+                          : icon.library === 'FontAwesome5'
+                            ? FontAwesome5
+                            : Ionicons;
+                      return (
+                        <IconComponent
+                          name={icon.name}
+                          size={36}
+                          color={icon.color}
+                        />
+                      );
+                    })()}
+                  </View>
+                </View>
 
-            {/* Title */}
-            <Text className="text-gray-700 text-xs font-medium text-center mt-2 leading-4">
-              {service.name}
-            </Text>
+                {/* Title */}
+                <Text
+                  className="text-white text-xs font-bold text-center mt-2 leading-4"
+                  style={{
+                    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+                    textShadowOffset: { width: 0, height: 1 },
+                    textShadowRadius: 3,
+                  }}
+                >
+                  {service.name}
+                </Text>
 
-            {/* Price */}
-            {/* <Text className="text-[#1A78F2] text-[10px] font-semibold text-center mt-1">
+                {/* Price */}
+                {/* <Text className="text-[#1A78F2] text-[10px] font-semibold text-center mt-1">
               {service.basePrice.toLocaleString()}₫
             </Text> */}
-          </TouchableOpacity>
-        ))}
-      </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      </ImageBackground>
     </View>
   );
 };

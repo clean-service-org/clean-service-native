@@ -1,15 +1,18 @@
 import { getServiceBanner } from '@/common/serviceBanners';
 import Button from '@/components/Button';
 import { API_ENDPOINTS, apiCall } from '@/config/api';
+import { useAuth } from '@/contexts/AuthContext';
 import { ServiceType } from '@/types/service.types';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, ScrollView, Text, View } from 'react-native';
+import Toast from 'react-native-toast-message';
 
 const ServiceDetail = () => {
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const { isAuthenticated } = useAuth();
   const [service, setService] = useState<ServiceType | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -30,6 +33,33 @@ const ServiceDetail = () => {
       console.error('Error fetching service:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleStartBooking = () => {
+    if (!isAuthenticated) {
+      // Show toast notification
+      Toast.show({
+        type: 'info',
+        text1: 'Login Required',
+        text2: 'Please login to book this service',
+        position: 'top',
+        topOffset: 60,
+      });
+
+      // Redirect to login with return URL
+      setTimeout(() => {
+        router.push({
+          pathname: '/customer/(auth)/login',
+          params: { returnUrl: `/customer/booking?id=${id}` },
+        });
+      }, 1000);
+    } else {
+      // Already logged in, go to booking
+      router.push({
+        pathname: '/customer/booking',
+        params: { id },
+      });
     }
   };
 
@@ -162,15 +192,7 @@ const ServiceDetail = () => {
         </ScrollView>
 
         <View className="px-5 pb-6 pt-4">
-          <Button
-            className="rounded-2xl"
-            onPress={() =>
-              router.push({
-                pathname: '/customer/booking',
-                params: { id },
-              })
-            }
-          >
+          <Button className="rounded-2xl" onPress={handleStartBooking}>
             Start the experience
           </Button>
         </View>
