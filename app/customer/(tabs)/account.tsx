@@ -13,25 +13,7 @@ import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
 
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-interface UserProfile {
-  id: string;
-
-  userType: string;
-
-  fullName: string;
-
-  phoneNumber: string;
-
-  email: string;
-
-  profilePicture?: string;
-
-  address?: string;
-
-  dateOfBirth?: string;
-
-  gender?: string;
-}
+import type { UserProfile } from '@/types/user.types';
 
 const Account = () => {
   const router = useRouter();
