@@ -33,6 +33,11 @@ export const API_ENDPOINTS = {
     types: '/servicetype/all',
     typeById: (id: string) => `/servicetype/${id}`,
   },
+  // Feedback
+  feedback: {
+    all: (page: number = 1, limit: number = 10) =>
+      `/manage/feedbacks?page=${page}&limit=${limit}`,
+  },
 };
 
 // Helper function to construct full URL

@@ -4,8 +4,11 @@ import BannerCarousel from '@/components/customer/Banner';
 
 import ServiceGrid from '@/components/customer/ServiceGrid';
 
+import FeedbackCarousel from '@/components/customer/FeedbackCarousel';
+
 import BottomSheet, {
   BottomSheetBackdrop,
+  BottomSheetScrollView,
   BottomSheetView,
 } from '@gorhom/bottom-sheet';
 
@@ -24,6 +27,7 @@ import { Image, Pressable, ScrollView, Text, View } from 'react-native';
 import { API_ENDPOINTS, apiCall } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
 import type { SchedulerResponse } from '@/types/booking.types';
+import type { Feedback, FeedbackResponse } from '@/types/feedback.types';
 import type { UserProfile } from '@/types/user.types';
 
 const HomeScreen = () => {
@@ -32,10 +36,16 @@ const HomeScreen = () => {
   const [totalBookings, setTotalBookings] = useState(0);
   const [completedBookings, setCompletedBookings] = useState(0);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
+  const [selectedFeedback, setSelectedFeedback] = useState<Feedback | null>(
+    null,
+  );
 
   const bottomSheetRef = useRef<BottomSheet>(null);
+  const feedbackBottomSheetRef = useRef<BottomSheet>(null);
 
   const snapPoints = useMemo(() => ['40%'], []);
+  const feedbackSnapPoints = useMemo(() => ['75%'], []);
 
   const backDrop = useCallback(
     (props: any) => (
@@ -56,6 +66,44 @@ const HomeScreen = () => {
   const closeBottomSheet = useCallback(() => {
     bottomSheetRef.current?.close();
   }, []);
+
+  const handleFeedbackPress = useCallback((feedback: Feedback) => {
+    setSelectedFeedback(feedback);
+    feedbackBottomSheetRef.current?.expand();
+  }, []);
+
+  const closeFeedbackBottomSheet = useCallback(() => {
+    feedbackBottomSheetRef.current?.close();
+  }, []);
+
+  const renderStars = (rating: number) => {
+    const stars = [];
+    const fullStars = Math.floor(rating);
+    const hasHalfStar = rating % 1 !== 0;
+
+    for (let i = 0; i < 5; i++) {
+      if (i < fullStars) {
+        stars.push(
+          <Text key={i} className="text-blue-500 text-2xl">
+            ★
+          </Text>,
+        );
+      } else if (i === fullStars && hasHalfStar) {
+        stars.push(
+          <Text key={i} className="text-blue-500 text-2xl">
+            ★
+          </Text>,
+        );
+      } else {
+        stars.push(
+          <Text key={i} className="text-gray-300 text-2xl">
+            ★
+          </Text>,
+        );
+      }
+    }
+    return stars;
+  };
 
   // Fetch bookings from API
   useEffect(() => {
@@ -114,6 +162,25 @@ const HomeScreen = () => {
 
     fetchUserProfile();
   }, [userData]);
+
+  // Fetch feedbacks
+  useEffect(() => {
+    const fetchFeedbacks = async () => {
+      try {
+        const response = await apiCall<FeedbackResponse>(
+          API_ENDPOINTS.feedback.all(1, 10),
+        );
+
+        if (response.statusCode === 'OK' && response.data) {
+          setFeedbacks(response.data.results);
+        }
+      } catch (err) {
+        console.error('Error fetching feedbacks:', err);
+      }
+    };
+
+    fetchFeedbacks();
+  }, []);
 
   return (
     <View className="flex-1 bg-white">
@@ -233,6 +300,13 @@ const HomeScreen = () => {
         {/* Service Section */}
 
         <ServiceGrid />
+
+        {/* Customer Feedback Section */}
+
+        <FeedbackCarousel
+          feedbacks={feedbacks}
+          onFeedbackPress={handleFeedbackPress}
+        />
       </ScrollView>
 
       <BottomSheet
@@ -296,6 +370,56 @@ const HomeScreen = () => {
             </View>
           </View>
         </BottomSheetView>
+      </BottomSheet>
+
+      {/* Feedback Detail Bottom Sheet */}
+      <BottomSheet
+        ref={feedbackBottomSheetRef}
+        snapPoints={feedbackSnapPoints}
+        index={-1}
+        backdropComponent={backDrop}
+        enablePanDownToClose
+      >
+        <BottomSheetScrollView className="px-6 py-4">
+          {selectedFeedback && (
+            <>
+              {/* Rating */}
+              <View className="flex-row items-center mb-4">
+                {renderStars(selectedFeedback.helperRating)}
+                <Text className="text-blue-600 font-bold ml-3 text-xl">
+                  {selectedFeedback.helperRating.toFixed(1)}
+                </Text>
+              </View>
+
+              {/* Title */}
+              <Text className="text-gray-900 font-bold text-xl mb-3">
+                {selectedFeedback.title}
+              </Text>
+
+              {/* Description */}
+              <Text className="text-gray-600 text-base leading-6 mb-6">
+                {selectedFeedback.description}
+              </Text>
+
+              {/* Customer Info */}
+              <View className="flex-row items-center p-4 bg-gray-50 rounded-xl">
+                <View className="w-12 h-12 rounded-full bg-blue-100 items-center justify-center mr-4">
+                  <Text className="text-blue-600 font-bold text-lg">
+                    {selectedFeedback.customerName.charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+                <View>
+                  <Text className="text-gray-800 font-semibold text-base">
+                    {selectedFeedback.customerName}
+                  </Text>
+                  {/* <Text className="text-gray-400 text-sm">
+                    Verified Customer
+                  </Text> */}
+                </View>
+              </View>
+            </>
+          )}
+        </BottomSheetScrollView>
       </BottomSheet>
     </View>
   );
