@@ -7,13 +7,33 @@ import {
   ActivityIndicator,
   Alert,
   Linking,
+  Platform,
   ScrollView,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+// Safe dynamic import for react-native-maps
+let MapView: any = View;
+let Marker: any = View;
+let Polyline: any = View;
+let PROVIDER_GOOGLE: any;
+
+if (Platform.OS !== 'web') {
+  try {
+    // Use dynamic require to prevent Metro from bundling on web
+    const moduleName = 'react-native-maps';
+    const Maps = require(moduleName);
+    MapView = Maps.default;
+    Marker = Maps.Marker;
+    Polyline = Maps.Polyline;
+    PROVIDER_GOOGLE = Maps.PROVIDER_GOOGLE;
+  } catch (error) {
+    console.log('Maps not available:', error);
+  }
+}
 import Button from '../../../../components/Button';
 import { Task } from '../../../../types/task.types';
 import { startTask } from '../../api';
