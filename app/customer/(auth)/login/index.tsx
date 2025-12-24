@@ -57,7 +57,20 @@ const LoginScreen = () => {
 
     setIsLoading(true);
     try {
-      await login(phoneNumber, password);
+      const result = await login(phoneNumber, password, 'Customer');
+
+      if (!result.success) {
+        // Show error toast for wrong account type
+        Toast.show({
+          type: 'error',
+          text1: 'Login Failed',
+          text2: result.error || 'An error occurred',
+          position: 'top',
+          topOffset: 60,
+        });
+        return;
+      }
+
       // Đăng nhập thành công, hiển thị toast và chuyển trang
       Toast.show({
         type: 'success',

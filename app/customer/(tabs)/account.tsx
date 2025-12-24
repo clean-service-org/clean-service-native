@@ -185,8 +185,8 @@ const Account = () => {
           </Button>
 
           <Button
-            className="rounded-xl bg-gray-200 w-full"
-            textClassName="text-[#1A78F1]"
+            className="rounded-xl bg-white border-2 border-[#1A78F2] w-full"
+            textClassName="text-[#1A78F2]"
             onPress={() => router.push('/customer/(auth)/signup')}
           >
             Create Account

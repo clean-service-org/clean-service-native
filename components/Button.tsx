@@ -21,7 +21,9 @@ export default function Button({
       disabled={disabled}
       className={`flex justify-center items-center bg-[#1A78F2] px-8 py-4 rounded-lg ${disabled ? 'opacity-50' : ''} ${className}`}
     >
-      <Text className={`text-center font-bold text-white ${textClassName}`}>
+      <Text
+        className={`text-center font-bold ${textClassName || 'text-white'}`}
+      >
         {children}
       </Text>
     </Pressable>
