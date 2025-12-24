@@ -58,7 +58,7 @@ const EmployeeSignInPage = () => {
 
         setIsLoading(true);
         try {
-            await login(phoneNumber, password);
+            await login(phoneNumber, password, "Employee");
             // Login successful, show toast and navigate
             Toast.show({
                 type: 'success',
