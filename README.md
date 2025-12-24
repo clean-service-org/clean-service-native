@@ -1,63 +1,121 @@
-# 🚀 My Expo App
+# ��� Clean Service - Mobile App
 
-A React Native project built with [Expo](https://expo.dev) and `create-expo-app`.  
-Configured with **ESLint (flat config)** and **Prettier** for consistent code style.
+A React Native mobile application for Clean Service platform, built with [Expo](https://expo.dev) and Expo Router for seamless navigation.
 
-## 📋 Requirements
+## ��� Requirements
 
-- [Node.js](https://nodejs.org/) **18+**
-- [npm](https://www.npmjs.com/) (or yarn)
-- (Optional) [Git](https://git-scm.com/) to clone the repo
-- Device or emulator to run the app:
-  - **Android**: Android Studio + emulator
-  - **iOS (macOS)**: Xcode + simulator
-  - **Or** install the [Expo Go](https://expo.dev/go) app on your phone
+Before you begin, ensure you have the following installed:
 
-## ▶️ How to Run
+- **[Node.js](https://nodejs.org/)** version **20.0.0** or higher
+- **npm** (comes with Node.js) or **yarn**
+- **Git** for version control
+- A device or emulator to run the app:
+  - **Android**: [Android Studio](https://developer.android.com/studio) with Android emulator
+  - **iOS (macOS only)**: [Xcode](https://developer.apple.com/xcode/) with iOS simulator
+  - **Physical Device**: Install [Expo Go](https://expo.dev/go) app on your phone (iOS/Android)
 
-1. **Clone the repo**
+## ��� Getting Started
 
-   ```bash
-   git clone https://github.com/clean-service-org/clean-service-native.git
-   cd clean-service-native
-   ```
+### 1. Clone the Repository
 
-2. **Install dependencies**
+```bash
+git clone https://github.com/clean-service-org/clean-service-native.git
+cd clean-service-native
+```
 
-   ```bash
-   npm install
-   ```
+### 2. Install Dependencies
 
-3. **Start the development server**
+```bash
+npm install
+```
 
-   ```bash
-   npx expo start
-   ```
+### 3. Environment Configuration
 
-4. **Open the app on your phone**
-   - Make sure your phone and computer are on the **same Wi‑Fi network**.
-   - After the server starts, the terminal shows a **QR code**.
-   - **Open the Expo Go app** on your phone and use the built‑in scanner to scan the QR code.
-   - The app will bundle and load on your device automatically.
-   - Edit any source file, then press **R** in the terminal to reload the updated app instantly on your phone.
+Create a `.env` file in the root directory by copying the example file:
 
-That’s it—your teammate just needs to clone, install, and start.
+```bash
+cp .env.example .env
+```
 
-## (Optional) Code Quality
+Then edit `.env` with your configuration:
 
-- **Lint check**
-  ```bash
-  npm run lint
-  ```
-- **Auto-fix issues**
-  ```bash
-  npm run lint -- --fix
-  ```
-- **Format code**
-  ```bash
-  npx prettier --write .
-  ```
+```env
 
----
+# Backend API URL (Required)
 
-Happy coding!
+BACKEND_API=https://cleanservice.app/api
+
+# Google Maps API Key (Required for map features)
+
+GOOGLE_MAP_KEY=your_google_maps_api_key_here
+```
+
+**Getting Google Maps API Key:**
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
+2. Create a new project or select existing one
+3. Enable the following APIs:
+   - Maps SDK for Android
+   - Maps SDK for iOS
+   - Geocoding API
+4. Create credentials (API Key)
+5. Copy the API key to your \`.env\` file
+
+### 4. Start the Development Server
+
+```bash
+npx expo start
+```
+
+Or use the npm script:
+
+```bash
+npm start
+```
+
+### 5. Run on Your Device
+
+After starting the development server, you'll see a QR code in the terminal. Choose one of the following options:
+
+#### Option A: Physical Device (Recommended for Testing)
+
+1. Install **Expo Go** app on your phone:
+   - [iOS App Store](https://apps.apple.com/app/expo-go/id982107779)
+   - [Android Play Store](https://play.google.com/store/apps/details?id=host.exp.exponent)
+
+2. **Ensure your phone and computer are on the same Wi-Fi network**
+
+3. Scan the QR code:
+   - **iOS**: Open Camera app and scan the QR code
+   - **Android**: Open Expo Go app and use the built-in scanner
+
+4. The app will bundle and load automatically
+
+#### Option B: Android Emulator
+
+```bash
+npm run android
+```
+
+or
+
+```bash
+npx expo start --android
+```
+
+Make sure Android Studio is installed and an emulator is running.
+
+#### Option C: iOS Simulator (macOS only)
+
+```bash
+npm run ios
+```
+
+or
+
+```bash
+npx expo start --ios
+```
+
+Make sure Xcode is installed.
+
