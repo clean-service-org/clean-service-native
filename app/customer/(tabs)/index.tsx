@@ -112,12 +112,12 @@ const HomeScreen = () => {
 
       try {
         const response = await apiCall<{
-          statusCode: number;
+          statusCode: number | string;
           message: string;
           data: SchedulerResponse;
         }>(API_ENDPOINTS.scheduler.byCustomerId(userData.userId));
 
-        if (response.statusCode === 200 && response.data) {
+        if ((response.statusCode === 200 || response.statusCode === 'OK') && response.data) {
           const bookings = response.data.results;
           setTotalBookings(bookings.length);
 

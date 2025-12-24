@@ -496,7 +496,7 @@ const BookingScreen = () => {
               <Marker
                 coordinate={markerCoords}
                 draggable
-                onDragEnd={(e) => {
+                onDragEnd={(e: any) => {
                   const coords = e.nativeEvent.coordinate;
                   setMarkerCoords(coords);
                   // Reverse geocode when marker is dragged
