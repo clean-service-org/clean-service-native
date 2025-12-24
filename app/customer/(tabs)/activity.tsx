@@ -5,6 +5,7 @@ import type {
   SchedulerBooking,
   SchedulerResponse,
 } from '@/types/booking.types';
+import type { CustomerFeedback } from '@/types/feedback.types';
 import BottomSheet, {
   BottomSheetBackdrop,
   BottomSheetView,
@@ -18,12 +19,33 @@ import React, {
 } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
+  ScrollView,
   Text,
+  TextInput,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
+
+// Star icon component
+const StarIcon = ({ filled }: { filled: boolean }) => (
+  <Svg width="36" height="36" viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"
+      fill={filled ? '#1A78F2' : 'transparent'}
+      stroke="#1A78F2"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
 
 const Activity = () => {
   const { userData } = useAuth();
@@ -31,9 +53,22 @@ const Activity = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<SchedulerBooking | null>(null);
+  const [feedbacksMap, setFeedbacksMap] = useState<
+    Map<string, CustomerFeedback>
+  >(new Map());
+
+  // Feedback states
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [feedbackMode, setFeedbackMode] = useState<'create' | 'view'>('create');
+  const [feedbackTitle, setFeedbackTitle] = useState('');
+  const [feedbackDescription, setFeedbackDescription] = useState('');
+  const [feedbackRating, setFeedbackRating] = useState(0);
+  const [submittingFeedback, setSubmittingFeedback] = useState(false);
 
   const bottomSheetRef = useRef<BottomSheet>(null);
+  const feedbackSheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ['45%'], []);
+  const feedbackSnapPoints = useMemo(() => ['90%'], []);
 
   // Fetch bookings from API
   useEffect(() => {
@@ -46,17 +81,41 @@ const Activity = () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await apiCall<{
-          statusCode: number | string;
-          message: string;
-          data: SchedulerResponse;
-        }>(API_ENDPOINTS.scheduler.byCustomerId(userData.userId));
+
+        // Fetch bookings and feedbacks in parallel
+        const [bookingsResponse, feedbacksResponse] = await Promise.all([
+          apiCall<{
+            statusCode: number | string;
+            message: string;
+            data: SchedulerResponse;
+          }>(API_ENDPOINTS.scheduler.byCustomerId(userData.userId)),
+          apiCall<{
+            statusCode: string;
+            message: string;
+            data: {
+              totalItems: number;
+              results: CustomerFeedback[];
+            };
+          }>(API_ENDPOINTS.feedback.byCustomerId(userData.userId)).catch(
+            () => null,
+          ),
+        ]);
 
         if (
-          (response.statusCode === 200 || response.statusCode === 'OK') &&
-          response.data
+          (bookingsResponse.statusCode === 200 ||
+            bookingsResponse.statusCode === 'OK') &&
+          bookingsResponse.data
         ) {
-          setBookings(response.data.results);
+          setBookings(bookingsResponse.data.results);
+        }
+
+        // Map feedbacks by bookingId
+        if (feedbacksResponse?.data?.results) {
+          const feedbackMap = new Map<string, CustomerFeedback>();
+          feedbacksResponse.data.results.forEach((feedback) => {
+            feedbackMap.set(feedback.bookingId, feedback);
+          });
+          setFeedbacksMap(feedbackMap);
         }
       } catch (err) {
         console.error('Error fetching bookings:', err);
@@ -88,6 +147,119 @@ const Activity = () => {
     bottomSheetRef.current?.close();
     setSelected(null);
   }, []);
+
+  // Open feedback modal
+  const openFeedbackModal = useCallback(() => {
+    if (!selected) return;
+
+    // Close details sheet first
+    closeBottomSheet();
+
+    // Check if feedback exists for this booking
+    const existingFeedback = feedbacksMap.get(selected.id);
+
+    if (existingFeedback) {
+      // View mode - show existing feedback
+      setFeedbackMode('view');
+      setFeedbackTitle(existingFeedback.title);
+      setFeedbackDescription(existingFeedback.description);
+      setFeedbackRating(existingFeedback.rating || selected.helperRating || 0);
+    } else {
+      // Create mode - reset form
+      setFeedbackMode('create');
+      setFeedbackTitle('');
+      setFeedbackDescription('');
+      setFeedbackRating(0);
+    }
+
+    // Open feedback sheet after a short delay
+    setTimeout(() => {
+      feedbackSheetRef.current?.expand();
+      setShowFeedbackModal(true);
+    }, 300);
+  }, [selected, closeBottomSheet, feedbacksMap]);
+
+  const closeFeedbackModal = useCallback(() => {
+    feedbackSheetRef.current?.close();
+    setShowFeedbackModal(false);
+    setFeedbackTitle('');
+    setFeedbackDescription('');
+    setFeedbackRating(0);
+  }, []);
+
+  // Submit feedback
+  const submitFeedback = async () => {
+    if (!selected) return;
+
+    // Validation
+    if (feedbackRating === 0) {
+      Alert.alert('Validation Error', 'Please select a rating');
+      return;
+    }
+
+    if (!feedbackTitle.trim()) {
+      Alert.alert('Validation Error', 'Please enter a title');
+      return;
+    }
+
+    if (!feedbackDescription.trim()) {
+      Alert.alert('Validation Error', 'Please enter a description');
+      return;
+    }
+
+    try {
+      setSubmittingFeedback(true);
+
+      const response = await apiCall(API_ENDPOINTS.feedback.create, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          bookingId: selected.id,
+          title: feedbackTitle.trim(),
+          description: feedbackDescription.trim(),
+          rating: feedbackRating,
+        }),
+      });
+
+      console.log('Feedback response:', response);
+
+      Alert.alert('Success', 'Your feedback has been submitted successfully!', [
+        {
+          text: 'OK',
+          onPress: () => {
+            closeFeedbackModal();
+            // Refresh bookings
+            if (userData?.userId) {
+              apiCall<{
+                statusCode: number | string;
+                message: string;
+                data: SchedulerResponse;
+              }>(API_ENDPOINTS.scheduler.byCustomerId(userData.userId))
+                .then((res) => {
+                  if (
+                    (res.statusCode === 200 || res.statusCode === 'OK') &&
+                    res.data
+                  ) {
+                    setBookings(res.data.results);
+                  }
+                })
+                .catch((err) => console.error('Error refreshing:', err));
+            }
+          },
+        },
+      ]);
+    } catch (err: any) {
+      console.error('Error submitting feedback:', err);
+      Alert.alert(
+        'Error',
+        err.message || 'Failed to submit feedback. Please try again.',
+      );
+    } finally {
+      setSubmittingFeedback(false);
+    }
+  };
 
   // Format date time
   const formatDateTime = (dateString: string) => {
@@ -292,8 +464,152 @@ const Activity = () => {
                   )}
                 </View>
               )}
+
+              {/* Feedback button for completed bookings */}
+              {selected.status.toLowerCase() === 'completed' && (
+                <TouchableOpacity
+                  onPress={openFeedbackModal}
+                  className="mt-4 bg-[#1A78F2] rounded-xl py-3 px-4 items-center"
+                  activeOpacity={0.8}
+                >
+                  <Text className="text-white font-semibold text-base">
+                    {feedbacksMap.has(selected.id)
+                      ? 'View Feedback'
+                      : 'Leave Feedback'}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </>
           )}
+        </BottomSheetView>
+      </BottomSheet>
+
+      {/* Feedback Bottom Sheet */}
+      <BottomSheet
+        ref={feedbackSheetRef}
+        snapPoints={feedbackSnapPoints}
+        index={-1}
+        enablePanDownToClose={true}
+        backdropComponent={backDrop}
+        keyboardBehavior="interactive"
+        keyboardBlurBehavior="restore"
+        android_keyboardInputMode="adjustResize"
+        onChange={(index) => {
+          if (index === -1) {
+            setShowFeedbackModal(false);
+          }
+        }}
+      >
+        <BottomSheetView className="flex-1 px-5 pt-3 pb-6">
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            className="flex-1"
+            keyboardVerticalOffset={10}
+          >
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ paddingBottom: 20 }}
+            >
+              <Text className="text-xl font-bold text-[#1A78F2] mb-1">
+                {feedbackMode === 'view' ? 'Your Feedback' : 'Leave Feedback'}
+              </Text>
+              <Text className="text-gray-500 text-sm mb-4">
+                {feedbackMode === 'view'
+                  ? 'You already submitted feedback for this service'
+                  : 'Share your experience with this service'}
+              </Text>
+
+              {/* Rating */}
+              <View className="mb-4">
+                <Text className="text-gray-700 font-semibold mb-2">
+                  Rating <Text className="text-red-500">*</Text>
+                </Text>
+                <View className="flex-row gap-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <TouchableOpacity
+                      key={star}
+                      onPress={() =>
+                        feedbackMode === 'create' && setFeedbackRating(star)
+                      }
+                      activeOpacity={feedbackMode === 'create' ? 0.7 : 1}
+                      disabled={feedbackMode === 'view'}
+                    >
+                      <StarIcon filled={star <= feedbackRating} />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* Title */}
+              <View className="mb-4">
+                <Text className="text-gray-700 font-semibold mb-2">
+                  Title <Text className="text-red-500">*</Text>
+                </Text>
+                <TextInput
+                  value={feedbackTitle}
+                  onChangeText={setFeedbackTitle}
+                  placeholder="e.g., Great service!"
+                  className="border border-gray-300 rounded-xl px-4 py-3 text-gray-800"
+                  maxLength={100}
+                  editable={feedbackMode === 'create'}
+                />
+              </View>
+
+              {/* Description */}
+              <View className="mb-4">
+                <Text className="text-gray-700 font-semibold mb-2">
+                  Description <Text className="text-red-500">*</Text>
+                </Text>
+                <TextInput
+                  value={feedbackDescription}
+                  onChangeText={setFeedbackDescription}
+                  placeholder="Tell us about your experience..."
+                  multiline
+                  numberOfLines={4}
+                  textAlignVertical="top"
+                  className="border border-gray-300 rounded-xl px-4 py-3 text-gray-800 min-h-[100px]"
+                  maxLength={500}
+                  editable={feedbackMode === 'create'}
+                />
+                <Text className="text-gray-400 text-xs mt-1">
+                  {feedbackDescription.length}/500
+                </Text>
+              </View>
+
+              {/* Submit Button - only show in create mode */}
+              {feedbackMode === 'create' && (
+                <TouchableOpacity
+                  onPress={submitFeedback}
+                  disabled={submittingFeedback}
+                  className={`rounded-xl py-3 px-4 items-center ${
+                    submittingFeedback ? 'bg-gray-400' : 'bg-[#1A78F2]'
+                  }`}
+                  activeOpacity={0.8}
+                >
+                  {submittingFeedback ? (
+                    <ActivityIndicator color="white" />
+                  ) : (
+                    <Text className="text-white font-semibold text-base">
+                      Submit Feedback
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              )}
+
+              {/* Close Button */}
+              <TouchableOpacity
+                onPress={closeFeedbackModal}
+                disabled={submittingFeedback && feedbackMode === 'create'}
+                className={`${feedbackMode === 'create' ? 'mt-3' : ''} py-3 px-4 items-center`}
+                activeOpacity={0.8}
+              >
+                <Text className="text-gray-500 font-medium">
+                  {feedbackMode === 'view' ? 'Close' : 'Cancel'}
+                </Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </KeyboardAvoidingView>
         </BottomSheetView>
       </BottomSheet>
     </SafeAreaView>
