@@ -14,11 +14,21 @@ interface UserData {
   refreshToken: string;
 }
 
+interface LoginResult {
+  success: boolean;
+  data?: UserData;
+  error?: string;
+}
+
 interface AuthContextType {
   userData: UserData | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (phoneNumber: string, password: string) => Promise<void>;
+  login: (
+    phoneNumber: string,
+    password: string,
+    expectedUserType: 'Customer' | 'Employee',
+  ) => Promise<LoginResult>;
   logout: () => Promise<void>;
   setUserData: (data: UserData | null) => void;
 }
@@ -55,7 +65,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
-  const login = async (phoneNumber: string, password: string) => {
+  const login = async (
+    phoneNumber: string,
+    password: string,
+    expectedUserType: 'Customer' | 'Employee',
+  ) => {
     try {
       const response = await fetch(
         'https://cleanservice.app/api/auth/login/mobile',
@@ -101,6 +115,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           refreshToken: result.data.refreshToken,
         };
 
+        // Validate userType matches expected type
+        if (authData.userType !== expectedUserType) {
+          return {
+            success: false,
+            error: `This account is not a ${expectedUserType.toLowerCase()} account.`,
+          };
+        }
+
         // Save to state
         setUserData(authData);
 
@@ -109,6 +131,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           STORAGE_KEYS.USER_DATA,
           JSON.stringify(authData),
         );
+
+        return {
+          success: true,
+          data: authData,
+        };
       } else {
         throw new Error('Login failed');
       }

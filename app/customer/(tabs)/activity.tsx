@@ -67,18 +67,20 @@ const Activity = () => {
 
   const bottomSheetRef = useRef<BottomSheet>(null);
   const feedbackSheetRef = useRef<BottomSheet>(null);
+  const isFetchingRef = useRef(false);
   const snapPoints = useMemo(() => ['45%'], []);
   const feedbackSnapPoints = useMemo(() => ['90%'], []);
 
   // Fetch bookings from API
   useEffect(() => {
     const fetchBookings = async () => {
-      if (!userData?.userId) {
+      if (!userData?.userId || isFetchingRef.current) {
         setLoading(false);
         return;
       }
 
       try {
+        isFetchingRef.current = true;
         setLoading(true);
         setError(null);
 
@@ -122,6 +124,7 @@ const Activity = () => {
         setError('Failed to load bookings');
       } finally {
         setLoading(false);
+        isFetchingRef.current = false;
       }
     };
 
@@ -228,24 +231,30 @@ const Activity = () => {
       Alert.alert('Success', 'Your feedback has been submitted successfully!', [
         {
           text: 'OK',
-          onPress: () => {
+          onPress: async () => {
             closeFeedbackModal();
-            // Refresh bookings
+            // Refresh feedbacks only
             if (userData?.userId) {
-              apiCall<{
-                statusCode: number | string;
-                message: string;
-                data: SchedulerResponse;
-              }>(API_ENDPOINTS.scheduler.byCustomerId(userData.userId))
-                .then((res) => {
-                  if (
-                    (res.statusCode === 200 || res.statusCode === 'OK') &&
-                    res.data
-                  ) {
-                    setBookings(res.data.results);
-                  }
-                })
-                .catch((err) => console.error('Error refreshing:', err));
+              try {
+                const feedbacksResponse = await apiCall<{
+                  statusCode: string;
+                  message: string;
+                  data: {
+                    totalItems: number;
+                    results: CustomerFeedback[];
+                  };
+                }>(API_ENDPOINTS.feedback.byCustomerId(userData.userId));
+
+                if (feedbacksResponse?.data?.results) {
+                  const feedbackMap = new Map<string, CustomerFeedback>();
+                  feedbacksResponse.data.results.forEach((feedback) => {
+                    feedbackMap.set(feedback.bookingId, feedback);
+                  });
+                  setFeedbacksMap(feedbackMap);
+                }
+              } catch (err) {
+                console.error('Error refreshing feedbacks:', err);
+              }
             }
           },
         },
