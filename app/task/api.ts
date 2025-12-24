@@ -4,15 +4,15 @@ const API_BASE_URL =
   Constants.expoConfig?.extra?.BACKEND_API || 'https://cleanservice.app/api';
 
 export enum BookingStatus {
-  pending = 0,
+  pending = "Pending",
 
-  confirmed = 1,
+  confirmed = "Confirmed",
 
-  in_progress = 2,
+  in_progress = "InProgress",
 
-  completed = 3,
+  completed = "Completed",
 
-  cancelled = 4,
+  cancelled = "Cancelled",
 }
 
 export interface Customer {
@@ -116,14 +116,12 @@ export async function updateBookingStatus(
 
   data: UpdateBookingRequestDto,
 ): Promise<any> {
-  // Debugging ID
 
-  const debugBookingId = '108da774-05e9-4219-ad75-584881508ff1';
+  console.log('Updating booking status:', bookingId, data);
 
-  // Not using bookingId parameter for now
-
+  console.log(JSON.stringify(data), "------------------------------------------");
   const response = await fetch(
-    `${API_BASE_URL}/booking/update/${debugBookingId}`,
+    `${API_BASE_URL}/booking/update/${bookingId}`,
     {
       method: 'PATCH',
 

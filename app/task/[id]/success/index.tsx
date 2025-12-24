@@ -10,7 +10,7 @@ export default function TaskSubmitSuccessScreen() {
 
   const handleContinue = () => {
     // Navigate back to task list or home
-    router.push('/(employee)/home' as any);
+    router.push('/employee/(tabs)' as any);
   };
 
   return (

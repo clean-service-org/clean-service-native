@@ -14,6 +14,8 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Button from '../../../../components/Button';
+import { Booking, completeTask, getBookingById, startTask } from '../../api';
 
 // Safe dynamic import for react-native-maps
 let MapView: any = View;
@@ -34,9 +36,6 @@ if (Platform.OS !== 'web') {
     console.log('Maps not available:', error);
   }
 }
-import Button from '../../../../components/Button';
-import { Task } from '../../../../types/task.types';
-import { startTask } from '../../api';
 
 const GOOGLE_API_KEY = Constants.expoConfig?.extra?.GOOGLE_MAP_KEY;
 
@@ -44,7 +43,8 @@ export default function TaskStartScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-
+  const [task, setTask] = useState<Booking | null>(null);
+  const [isTaskLoading, setIsTaskLoading] = useState(true);
   // Map states
   const mapRef = useRef<MapView>(null);
   const [currentLocation, setCurrentLocation] = useState<{
@@ -58,28 +58,26 @@ export default function TaskStartScreen() {
   const [duration, setDuration] = useState<string>('');
   const [isLoadingRoute, setIsLoadingRoute] = useState(false);
 
-  const task: Task = {
-    id: id || '1',
-    title: 'Clean Office Space',
-    description:
-      'Deep cleaning of the main office area including desks, floors, and windows.',
-    location: '123 Business St, Office Building A',
-    priority: 'HIGH',
-    materials: [
-      'All-purpose cleaner',
-      'Microfiber cloths',
-      'Vacuum cleaner',
-      'Glass cleaner',
-    ],
-    status: 'confirmed',
-    assignedAt: new Date().toISOString(),
-    acceptedAt: new Date().toISOString(),
-  };
+  useEffect(() => {
+    if (id) {
+      fetchTaskDetails();
+    }
+  }, [id]);
 
-  // Mock destination coordinates (sau này sẽ geocode từ task.location)
-  const destinationCoords = {
-    latitude: 10.772622,
-    longitude: 106.670172,
+
+  const fetchTaskDetails = async () => {
+    try {
+      setIsTaskLoading(true);
+      const response = await getBookingById(id);
+      if (response && response.data) {
+        setTask(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching task details:', error);
+      Alert.alert('Error', 'Failed to load task details');
+    } finally {
+      setIsTaskLoading(false);
+    }
   };
 
   // Get current location and fetch directions
@@ -105,6 +103,12 @@ export default function TaskStartScreen() {
         longitude: location.coords.longitude,
       };
       setCurrentLocation(currentCoords);
+
+      // Mock destination coordinates if task doesn't have specific coords
+      const destinationCoords = {
+        latitude: 10.772622,
+        longitude: 106.670172,
+      };
 
       // Fetch directions
       await getDirections(currentCoords, destinationCoords);
@@ -188,15 +192,24 @@ export default function TaskStartScreen() {
   };
 
   const openInGoogleMaps = () => {
+    // Default destination
+    const destinationCoords = {
+      latitude: 10.772622,
+      longitude: 106.670172,
+    };
+
     const url = `https://www.google.com/maps/dir/?api=1&origin=${currentLocation?.latitude},${currentLocation?.longitude}&destination=${destinationCoords.latitude},${destinationCoords.longitude}`;
     Linking.openURL(url);
   };
+
+
 
   const handleStart = async () => {
     try {
       setIsLoading(true);
       await startTask(id);
-      router.push(`/task/${id}/in-progress` as any);
+      // Update local task status to refresh UI
+      setTask(prev => prev ? ({ ...prev, status: 'InProgress' }) : null);
     } catch (err: any) {
       console.error('Start task error:', err);
       Alert.alert('Error', err.message || 'Failed to start task. Please try again.');
@@ -205,12 +218,54 @@ export default function TaskStartScreen() {
     }
   };
 
+  const handleFinish = async () => {
+    Alert.alert(
+      'Finish Task',
+      'Are you sure you want to finish this task?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Finish',
+          onPress: async () => {
+            try {
+              setIsLoading(true);
+              await completeTask(id);
+              router.push(`/task/${id}/success` as any);
+            } catch (error: any) {
+              console.error('Complete task error:', error);
+              Alert.alert('Error', error.message || 'Failed to complete task');
+            } finally {
+              setIsLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Destination coords for map
+  const destinationCoords = {
+    latitude: 10.772622,
+    longitude: 106.670172,
+  };
+
+  if (isTaskLoading || !task) {
+    return (
+      <SafeAreaView className="flex-1 bg-white justify-center items-center">
+        <ActivityIndicator size="large" color="#1A78F2" />
+        <Text className="text-gray-600 mt-4">Loading task details...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  const isInProgress = task.status === 'InProgress' || task.status === 'in_progress';
+
   return (
     <SafeAreaView className="flex-1 bg-white">
       <ScrollView className="flex-1 px-6 py-4">
         {/* Task Title */}
         <Text className="text-2xl font-bold text-gray-900 mb-4">
-          {task.title}
+          {task.serviceType?.name || 'Task Details'}
         </Text>
 
         {/* Map Section */}
@@ -320,7 +375,7 @@ export default function TaskStartScreen() {
           )}
         </View>
 
-        {/* Instructions Section */}
+        {/* Instructions Section - Only show if not in progress or if needed */}
         <View className="mb-6">
           <View className="flex-row items-center mb-3">
             <Ionicons name="information-circle" size={24} color="#1A78F2" />
@@ -356,12 +411,14 @@ export default function TaskStartScreen() {
           )}
 
           {/* Description */}
-          <View className="bg-gray-50 p-3 rounded-lg mb-3">
-            <Text className="text-gray-600 text-sm font-medium mb-1">
-              Description
-            </Text>
-            <Text className="text-gray-900 leading-6">{task.description}</Text>
-          </View>
+          {task.serviceType?.description && (
+            <View className="bg-gray-50 p-3 rounded-lg mb-3">
+              <Text className="text-gray-600 text-sm font-medium mb-1">
+                Description
+              </Text>
+              <Text className="text-gray-900 leading-6">{task.serviceType.description}</Text>
+            </View>
+          )}
         </View>
 
         {/* Safety Guidelines */}
@@ -395,25 +452,46 @@ export default function TaskStartScreen() {
         </View>
       </ScrollView>
 
-      {/* Start Button */}
+      {/* Action Button */}
       <View className="px-6 py-4 border-t border-gray-200">
-        <Button
-          onPress={handleStart}
-          disabled={isLoading}
-          className="bg-green-600"
-        >
-          {isLoading ? (
-            <View className="flex-row items-center">
-              <ActivityIndicator color="white" className="mr-2" />
-              <Text className="text-white font-bold">Starting...</Text>
-            </View>
-          ) : (
-            <View className="flex-row items-center">
-              <Ionicons name="play-circle" size={20} color="white" />
-              <Text className="text-white font-bold ml-2">Start Task</Text>
-            </View>
-          )}
-        </Button>
+        {!isInProgress ? (
+          <Button
+            onPress={handleStart}
+            disabled={isLoading}
+            className="bg-green-600"
+          >
+            {isLoading ? (
+              <View className="flex-row items-center">
+                <ActivityIndicator color="white" className="mr-2" />
+                <Text className="text-white font-bold">Starting...</Text>
+              </View>
+            ) : (
+              <View className="flex-row items-center">
+                <Ionicons name="play-circle" size={20} color="white" />
+                <Text className="text-white font-bold ml-2">Start Task</Text>
+              </View>
+            )}
+          </Button>
+        ) : (
+          <Button
+            onPress={handleFinish}
+            disabled={isLoading}
+            className="bg-[#1A78F2]" // Blue color for finish
+          >
+            {isLoading ? (
+              <View className="flex-row items-center">
+                <ActivityIndicator color="white" className="mr-2" />
+                <Text className="text-white font-bold">Finishing...</Text>
+              </View>
+            ) : (
+              <View className="flex-row items-center">
+                <Ionicons name="checkmark-circle" size={20} color="white" />
+                <Text className="text-white font-bold ml-2">Finish Task</Text>
+              </View>
+            )}
+          </Button>
+        )}
+
       </View>
     </SafeAreaView>
   );

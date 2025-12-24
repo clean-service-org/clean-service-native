@@ -5,6 +5,7 @@ import { useCallback, useState } from 'react';
 import {
     ActivityIndicator,
     FlatList,
+    RefreshControl,
     ScrollView,
     Text,
     TouchableOpacity,
@@ -18,6 +19,7 @@ const Task = () => {
     const { userData } = useAuth();
     const [bookings, setBookings] = useState<Booking[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     useFocusEffect(
@@ -34,7 +36,7 @@ const Task = () => {
         }, [userData?.userId])
     );
 
-    const loadBookings = async () => {
+    const loadBookings = async (isRefreshing = false) => {
         if (!userData?.userId) {
             setError('Please log in to view your tasks');
             setIsLoading(false);
@@ -42,7 +44,11 @@ const Task = () => {
         }
 
         try {
-            setIsLoading(true);
+            if (isRefreshing) {
+                setRefreshing(true);
+            } else {
+                setIsLoading(true);
+            }
             setError(null);
             console.log('Fetching bookings for userId:', userData.userId);
             const response = await getHelperBookings(userData.userId);
@@ -52,8 +58,16 @@ const Task = () => {
             console.error('Error loading bookings:', err);
             setError(err.message || 'Failed to load bookings');
         } finally {
-            setIsLoading(false);
+            if (isRefreshing) {
+                setRefreshing(false);
+            } else {
+                setIsLoading(false);
+            }
         }
+    };
+
+    const onRefresh = () => {
+        loadBookings(true);
     };
 
     const [filter, setFilter] = useState<'all' | 'Pending' | 'Confirmed' | 'InProgress' | 'Completed' | 'Cancelled'>(
@@ -167,7 +181,7 @@ const Task = () => {
                     <Text className="text-red-600 font-semibold text-lg mt-4">Error</Text>
                     <Text className="text-gray-600 text-center mt-2">{error}</Text>
                     <TouchableOpacity
-                        onPress={loadBookings}
+                        onPress={() => loadBookings()}
                         className="mt-4 bg-blue-600 px-6 py-3 rounded-lg"
                     >
                         <Text className="text-white font-semibold">Retry</Text>
@@ -258,6 +272,14 @@ const Task = () => {
                         keyExtractor={(item) => item.id}
                         className="px-6"
                         contentContainerStyle={{ paddingBottom: 100 }}
+                        refreshControl={
+                            <RefreshControl
+                                refreshing={refreshing}
+                                onRefresh={onRefresh}
+                                colors={['#1A78F2']}
+                                tintColor="#1A78F2"
+                            />
+                        }
                         renderItem={({ item }) => (
                             <TouchableOpacity
                                 onPress={() => router.push(`/task/${item.id}/info`)}
@@ -277,7 +299,7 @@ const Task = () => {
                                         </View>
                                     </View>
                                     <Text className="text-xl font-bold text-green-600">
-                                        ${item.totalPrice.toFixed(0)}
+                                        {item.totalPrice.toLocaleString('vi-VN')}₫
                                     </Text>
                                 </View>
 
