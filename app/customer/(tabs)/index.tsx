@@ -25,26 +25,38 @@ import React, {
 import { Image, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { API_ENDPOINTS, apiCall } from '@/config/api';
+
 import { useAuth } from '@/contexts/AuthContext';
+
 import type { SchedulerResponse } from '@/types/booking.types';
+
 import type { Feedback, FeedbackResponse } from '@/types/feedback.types';
+
 import type { UserProfile } from '@/types/user.types';
 
 const HomeScreen = () => {
   const router = useRouter();
+
   const { userData, isAuthenticated, isLoading } = useAuth();
+
   const [totalBookings, setTotalBookings] = useState(0);
+
   const [completedBookings, setCompletedBookings] = useState(0);
+
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
+
   const [selectedFeedback, setSelectedFeedback] = useState<Feedback | null>(
     null,
   );
 
   const bottomSheetRef = useRef<BottomSheet>(null);
+
   const feedbackBottomSheetRef = useRef<BottomSheet>(null);
 
   const snapPoints = useMemo(() => ['40%'], []);
+
   const feedbackSnapPoints = useMemo(() => ['75%'], []);
 
   const backDrop = useCallback(
@@ -69,6 +81,7 @@ const HomeScreen = () => {
 
   const handleFeedbackPress = useCallback((feedback: Feedback) => {
     setSelectedFeedback(feedback);
+
     feedbackBottomSheetRef.current?.expand();
   }, []);
 
@@ -78,7 +91,9 @@ const HomeScreen = () => {
 
   const renderStars = (rating: number) => {
     const stars = [];
+
     const fullStars = Math.floor(rating);
+
     const hasHalfStar = rating % 1 !== 0;
 
     for (let i = 0; i < 5; i++) {
@@ -102,10 +117,12 @@ const HomeScreen = () => {
         );
       }
     }
+
     return stars;
   };
 
   // Fetch bookings from API
+
   useEffect(() => {
     const fetchBookings = async () => {
       if (!userData?.userId) return;
@@ -113,18 +130,26 @@ const HomeScreen = () => {
       try {
         const response = await apiCall<{
           statusCode: number | string;
+
           message: string;
+
           data: SchedulerResponse;
         }>(API_ENDPOINTS.scheduler.byCustomerId(userData.userId));
 
-        if ((response.statusCode === 200 || response.statusCode === 'OK') && response.data) {
+        if (
+          (response.statusCode === 200 || response.statusCode === 'OK') &&
+          response.data
+        ) {
           const bookings = response.data.results;
+
           setTotalBookings(bookings.length);
 
           // Count completed bookings
+
           const completed = bookings.filter(
             (booking) => booking.status.toLowerCase() === 'completed',
           ).length;
+
           setCompletedBookings(completed);
         }
       } catch (err) {
@@ -136,6 +161,7 @@ const HomeScreen = () => {
   }, [userData]);
 
   // Fetch user profile
+
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (!userData?.accessToken) return;
@@ -143,7 +169,9 @@ const HomeScreen = () => {
       try {
         const response = await apiCall<{
           statusCode: number;
+
           message: string;
+
           data: any;
         }>(API_ENDPOINTS.auth.me, {
           headers: {
@@ -153,6 +181,7 @@ const HomeScreen = () => {
 
         if (response.statusCode === 200 && response.data) {
           console.log('User profile data:', response.data);
+
           setUserProfile(response.data);
         }
       } catch (err) {
@@ -164,6 +193,7 @@ const HomeScreen = () => {
   }, [userData]);
 
   // Fetch feedbacks
+
   useEffect(() => {
     const fetchFeedbacks = async () => {
       try {
@@ -196,19 +226,26 @@ const HomeScreen = () => {
             </Text>
 
             {/* <Image
+
               source={{
+
                 uri: 'https://cdn-icons-png.flaticon.com/512/197/197374.png',
+
               }} // icon UK
+
               className="w-6 h-6"
+
             /> */}
           </View>
 
           {/* Login Prompt for Unauthenticated Users */}
+
           {!isAuthenticated && (
             <View className="bg-white mt-4 p-6 rounded-2xl shadow-lg border border-blue-100">
               <Text className="text-gray-800 text-xl font-bold leading-7 mb-2">
                 Discover Home Services
               </Text>
+
               <Text className="text-gray-600 text-sm mb-4">
                 Experience professional cleaning and maintenance services at
                 your doorstep
@@ -240,6 +277,7 @@ const HomeScreen = () => {
                     ⚡ Fast Booking
                   </Text>
                 </View>
+
                 <View className="bg-green-50 px-4 py-2 rounded-full">
                   <Text className="text-green-600 text-xs font-medium">
                     ✓ Trusted Service
@@ -250,6 +288,7 @@ const HomeScreen = () => {
           )}
 
           {/* User Stats for Authenticated Users */}
+
           {isAuthenticated && (
             <View className="bg-white mt-3 p-4 rounded-2xl shadow-sm">
               <Text className="text-blue-500 font-semibold text-base leading-5">
@@ -373,6 +412,7 @@ const HomeScreen = () => {
       </BottomSheet>
 
       {/* Feedback Detail Bottom Sheet */}
+
       <BottomSheet
         ref={feedbackBottomSheetRef}
         snapPoints={feedbackSnapPoints}
@@ -384,36 +424,45 @@ const HomeScreen = () => {
           {selectedFeedback && (
             <>
               {/* Rating */}
+
               <View className="flex-row items-center mb-4">
                 {renderStars(selectedFeedback.helperRating)}
+
                 <Text className="text-blue-600 font-bold ml-3 text-xl">
                   {selectedFeedback.helperRating.toFixed(1)}
                 </Text>
               </View>
 
               {/* Title */}
+
               <Text className="text-gray-900 font-bold text-xl mb-3">
                 {selectedFeedback.title}
               </Text>
 
               {/* Description */}
+
               <Text className="text-gray-600 text-base leading-6 mb-6">
                 {selectedFeedback.description}
               </Text>
 
               {/* Customer Info */}
+
               <View className="flex-row items-center p-4 bg-gray-50 rounded-xl">
                 <View className="w-12 h-12 rounded-full bg-blue-100 items-center justify-center mr-4">
                   <Text className="text-blue-600 font-bold text-lg">
                     {selectedFeedback.customerName.charAt(0).toUpperCase()}
                   </Text>
                 </View>
+
                 <View>
                   <Text className="text-gray-800 font-semibold text-base">
                     {selectedFeedback.customerName}
                   </Text>
+
                   {/* <Text className="text-gray-400 text-sm">
+
                     Verified Customer
+
                   </Text> */}
                 </View>
               </View>
@@ -426,3 +475,4 @@ const HomeScreen = () => {
 };
 
 export default HomeScreen;
+
