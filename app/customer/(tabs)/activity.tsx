@@ -24,6 +24,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  RefreshControl,
   ScrollView,
   Text,
   TextInput,
@@ -51,6 +52,7 @@ const Activity = () => {
   const { userData } = useAuth();
   const [bookings, setBookings] = useState<SchedulerBooking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<SchedulerBooking | null>(null);
   const [feedbacksMap, setFeedbacksMap] = useState<
@@ -71,64 +73,80 @@ const Activity = () => {
   const snapPoints = useMemo(() => ['45%'], []);
   const feedbackSnapPoints = useMemo(() => ['90%'], []);
 
+  // Fetch bookings function (reusable)
+  const fetchBookingsData = async (isRefreshing = false) => {
+    if (!userData?.userId || isFetchingRef.current) {
+      if (!isRefreshing) setLoading(false);
+      return;
+    }
+
+    try {
+      isFetchingRef.current = true;
+      if (!isRefreshing) setLoading(true);
+      setError(null);
+
+      // Fetch bookings and feedbacks in parallel
+      const [bookingsResponse, feedbacksResponse] = await Promise.all([
+        apiCall<{
+          statusCode: number | string;
+          message: string;
+          data: SchedulerResponse;
+        }>(API_ENDPOINTS.scheduler.byCustomerId(userData.userId)),
+        apiCall<{
+          statusCode: string;
+          message: string;
+          data: {
+            totalItems: number;
+            results: CustomerFeedback[];
+          };
+        }>(API_ENDPOINTS.feedback.byCustomerId(userData.userId)).catch(
+          () => null,
+        ),
+      ]);
+
+      if (
+        (bookingsResponse.statusCode === 200 ||
+          bookingsResponse.statusCode === 'OK') &&
+        bookingsResponse.data
+      ) {
+        // Sort bookings by createdAt, newest first
+        const sortedBookings = bookingsResponse.data.results.sort((a, b) => {
+          return (
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+        });
+        setBookings(sortedBookings);
+      }
+
+      // Map feedbacks by bookingId
+      if (feedbacksResponse?.data?.results) {
+        const feedbackMap = new Map<string, CustomerFeedback>();
+        feedbacksResponse.data.results.forEach((feedback) => {
+          feedbackMap.set(feedback.bookingId, feedback);
+        });
+        setFeedbacksMap(feedbackMap);
+      }
+    } catch (err) {
+      console.error('Error fetching bookings:', err);
+      setError('Failed to load bookings');
+    } finally {
+      if (!isRefreshing) setLoading(false);
+      isFetchingRef.current = false;
+    }
+  };
+
   // Fetch bookings from API
   useEffect(() => {
-    const fetchBookings = async () => {
-      if (!userData?.userId || isFetchingRef.current) {
-        setLoading(false);
-        return;
-      }
+    fetchBookingsData();
+  }, [userData?.userId]);
 
-      try {
-        isFetchingRef.current = true;
-        setLoading(true);
-        setError(null);
+  // Pull to refresh handler
+  const onRefresh = useCallback(async () => {
+    if (isFetchingRef.current) return; // Prevent multiple requests
 
-        // Fetch bookings and feedbacks in parallel
-        const [bookingsResponse, feedbacksResponse] = await Promise.all([
-          apiCall<{
-            statusCode: number | string;
-            message: string;
-            data: SchedulerResponse;
-          }>(API_ENDPOINTS.scheduler.byCustomerId(userData.userId)),
-          apiCall<{
-            statusCode: string;
-            message: string;
-            data: {
-              totalItems: number;
-              results: CustomerFeedback[];
-            };
-          }>(API_ENDPOINTS.feedback.byCustomerId(userData.userId)).catch(
-            () => null,
-          ),
-        ]);
-
-        if (
-          (bookingsResponse.statusCode === 200 ||
-            bookingsResponse.statusCode === 'OK') &&
-          bookingsResponse.data
-        ) {
-          setBookings(bookingsResponse.data.results);
-        }
-
-        // Map feedbacks by bookingId
-        if (feedbacksResponse?.data?.results) {
-          const feedbackMap = new Map<string, CustomerFeedback>();
-          feedbacksResponse.data.results.forEach((feedback) => {
-            feedbackMap.set(feedback.bookingId, feedback);
-          });
-          setFeedbacksMap(feedbackMap);
-        }
-      } catch (err) {
-        console.error('Error fetching bookings:', err);
-        setError('Failed to load bookings');
-      } finally {
-        setLoading(false);
-        isFetchingRef.current = false;
-      }
-    };
-
-    fetchBookings();
+    setRefreshing(true);
+    await fetchBookingsData(true);
+    setRefreshing(false);
   }, [userData?.userId]);
 
   const backDrop = useCallback(
@@ -346,6 +364,14 @@ const Activity = () => {
         className="flex-1 px-5 pt-4"
         data={bookings}
         keyExtractor={(item) => item.id}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#1A78F2']}
+            tintColor="#1A78F2"
+          />
+        }
         renderItem={({ item }) => (
           <Pressable
             onPress={() => {
