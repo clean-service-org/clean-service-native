@@ -1,10 +1,24 @@
 import { Link, useRouter } from 'expo-router';
+import * as Linking from 'expo-linking';
 import { Text, View } from 'react-native';
 import Button from '../components/Button';
 import InputWithLabel from '../components/Input';
+import { useEffect } from 'react';
 
 export default function Index() {
+    const url = Linking.useLinkingURL();
     const router = useRouter();
+
+    useEffect(() => {
+    if (url) {
+      // Parse the URL
+      const { hostname, path, queryParams } = Linking.parse(url);
+      console.log('Deep link data:', { hostname, path, queryParams });
+      
+      // Navigate to appropriate screen
+      // navigation.navigate(path, queryParams);
+    }
+  }, [url]);
 
   return (
     <View className="flex-1 justify-center items-center">

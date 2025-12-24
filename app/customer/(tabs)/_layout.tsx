@@ -1,6 +1,5 @@
 import ActivityIcon from '@/components/icons/Activity';
 import HomeIcon from '@/components/icons/Home';
-import MessageIcon from '@/components/icons/Message';
 import UserIcon from '@/components/icons/User';
 import { Tabs } from 'expo-router';
 import React from 'react';
@@ -29,16 +28,6 @@ const _layout = () => {
               height={24}
               fill={focused ? '#007AFF' : '#8E8E93'}
             />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="message"
-        options={{
-          title: 'Messages',
-          headerShown: false,
-          tabBarIcon: ({ focused }) => (
-            <MessageIcon stroke={focused ? '#007AFF' : '#8E8E93'} />
           ),
         }}
       />

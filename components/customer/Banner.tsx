@@ -1,82 +1,69 @@
 import { Image } from 'expo-image';
 
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 
-import { Dimensions, FlatList, View } from 'react-native';
+import { Dimensions, View } from 'react-native';
+
+import Carousel from 'react-native-reanimated-carousel';
 
 const { width } = Dimensions.get('window');
 
 const banners = [
   {
     id: 1,
-
-    uri: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=800&h=400&fit=crop',
+    source: require('@/assets/images/service-banners/standard-banner.jpg'),
   },
-
   {
     id: 2,
-
-    uri: 'https://images.unsplash.com/photo-1628177142898-93e36e4e3a50?w=800&h=400&fit=crop',
+    source: require('@/assets/images/service-banners/deep-clean-banner.jpg'),
   },
-
   {
     id: 3,
-
-    uri: 'https://images.unsplash.com/photo-1563453392212-326f5e854473?w=800&h=400&fit=crop',
+    source: require('@/assets/images/service-banners/ac-cleaning-banner.jpg'),
   },
-
   {
     id: 4,
-
-    uri: 'https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=800&h=400&fit=crop',
+    source: require('@/assets/images/service-banners/post-party-banner.jpg'),
   },
 ];
 
 export default function BannerCarousel() {
   const [activeIndex, setActiveIndex] = useState(0);
 
-  const flatListRef = useRef(null);
-
-  const handleScroll = (event: any) => {
-    const slide = Math.round(event.nativeEvent.contentOffset.x / width);
-
-    if (slide !== activeIndex) {
-      setActiveIndex(slide);
-    }
-  };
-
   return (
     <View className="mt-4">
-      {/* Banner List */}
-
-      <FlatList
+      {/* Banner Carousel */}
+      <Carousel
+        loop
+        width={width}
+        height={180}
+        autoPlay={true}
+        autoPlayInterval={3500}
         data={banners}
-        ref={flatListRef}
-        keyExtractor={(item) => item.id.toString()}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onScroll={handleScroll}
+        scrollAnimationDuration={800}
+        onSnapToItem={(index) => setActiveIndex(index)}
         renderItem={({ item }) => (
-          <Image
-            source={item.uri}
-            style={{
-              width: width * 0.9,
-
-              height: 180,
-
-              borderRadius: 16,
-
-              marginHorizontal: width * 0.1 * 0.5,
-
-              borderWidth: 1,
-
-              borderColor: '#E0E0E0',
-            }}
-            contentFit="cover"
-          />
+          <View
+            style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
+          >
+            <Image
+              source={item.source}
+              style={{
+                width: width * 0.9,
+                height: 180,
+                borderRadius: 16,
+                borderWidth: 1,
+                borderColor: '#E0E0E0',
+              }}
+              contentFit="cover"
+            />
+          </View>
         )}
-        style={{ flexGrow: 0 }}
+        mode="parallax"
+        modeConfig={{
+          parallaxScrollingScale: 0.9,
+          parallaxScrollingOffset: 50,
+        }}
       />
 
       {/* Indicator Dots */}

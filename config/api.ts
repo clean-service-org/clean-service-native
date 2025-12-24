@@ -9,9 +9,11 @@ export const API_ENDPOINTS = {
   // Auth
   auth: {
     login: '/auth/login',
+    loginMobile: '/auth/login/mobile',
     signupCustomer: '/auth/signup/customer',
     signupHelper: '/auth/signup/helper',
     logout: '/auth/logout',
+    me: '/auth/me',
     getUser: (id: string) => `/auth/user/${id}`,
     updateUser: (id: string) => `/auth/user/${id}`,
   },
@@ -31,6 +33,11 @@ export const API_ENDPOINTS = {
     types: '/servicetype/all',
     typeById: (id: string) => `/servicetype/${id}`,
   },
+  // Feedback
+  feedback: {
+    all: (page: number = 1, limit: number = 10) =>
+      `/manage/feedbacks?page=${page}&limit=${limit}`,
+  },
 };
 
 // Helper function to construct full URL
@@ -45,22 +52,42 @@ export const apiCall = async <T = any>(
 ): Promise<T> => {
   try {
     const url = getApiUrl(endpoint);
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options?.headers,
-      },
-    });
+    const method = options?.method || 'GET';
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => null);
-      throw new Error(
-        errorData?.message || `API Error: ${response.statusText}`,
-      );
+    // Don't add Content-Type for GET requests
+    const headers: Record<string, string> = {
+      ...options?.headers,
+    } as Record<string, string>;
+
+    // Only add Content-Type for non-GET requests
+    if (method !== 'GET' && !headers['Content-Type']) {
+      headers['Content-Type'] = 'application/json';
     }
 
-    return await response.json();
+    const response = await fetch(url, {
+      ...options,
+      headers,
+    });
+
+    // Parse response text first
+    const text = await response.text();
+    let result;
+
+    try {
+      result = text ? JSON.parse(text) : null;
+    } catch (e) {
+      // If JSON parse fails
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.statusText}`);
+      }
+      throw new Error('Invalid response format');
+    }
+
+    if (!response.ok) {
+      throw new Error(result?.message || `API Error: ${response.statusText}`);
+    }
+
+    return result;
   } catch (error) {
     console.error('API Call Error:', error);
     throw error;

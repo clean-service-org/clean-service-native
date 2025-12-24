@@ -31,7 +31,32 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+
+// Safe dynamic import for react-native-maps
+
+let MapView: any = View;
+
+let Marker: any = View;
+
+let PROVIDER_GOOGLE: any;
+
+if (Platform.OS !== 'web') {
+  try {
+    // Use dynamic require to prevent Metro from bundling on web
+
+    const moduleName = 'react-native-maps';
+
+    const Maps = require(moduleName);
+
+    MapView = Maps.default;
+
+    Marker = Maps.Marker;
+
+    PROVIDER_GOOGLE = Maps.PROVIDER_GOOGLE;
+  } catch (error) {
+    console.log('Maps not available:', error);
+  }
+}
 
 const GOOGLE_API_KEY = Constants.expoConfig?.extra?.GOOGLE_MAP_KEY;
 
@@ -46,7 +71,7 @@ const DEFAULT_REGION = {
 const BookingScreen = () => {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const { authToken } = useAuth();
+  const { userData } = useAuth();
 
   // Service data
   const [service, setService] = useState<ServiceType | null>(null);
@@ -316,7 +341,7 @@ const BookingScreen = () => {
 
       // Prepare booking data
       const bookingData: CreateBookingRequest = {
-        customerId: authToken || '', // Sử dụng authToken từ AuthContext
+        customerId: userData?.userId || '',
         serviceTypeId: id as string, // Use service ID from params
         location: address,
         scheduledStartTime: scheduledStart.toISOString(),
