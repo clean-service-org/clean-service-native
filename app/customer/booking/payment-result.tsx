@@ -38,13 +38,13 @@ export default function PaymentResultScreen() {
       if (!userData?.accessToken) {
         return;
       }
-      
+
       setIsCancelling(true);
 
       // Extract orderId from apptransid (format: prefix_orderId_timestamp)
 
       const orderId = parseInt(apptransid.split('_')[1]);
-      
+
       console.log('Cancelling booking with orderId:', orderId);
 
       if (!isNaN(orderId)) {
@@ -130,7 +130,7 @@ export default function PaymentResultScreen() {
             {/* Action Buttons */}
 
             <View className="w-full space-y-3">
-              <Button onPress={handleViewBooking} className="w-full">
+              <Button onPress={handleViewBooking} className="w-full mb-2">
                 View My Bookings
               </Button>
 
@@ -296,7 +296,6 @@ export default function PaymentResultScreen() {
             </View>
 
             {/* Action Button */}
-
           </>
         );
 
@@ -399,4 +398,3 @@ export default function PaymentResultScreen() {
     </SafeAreaView>
   );
 }
-

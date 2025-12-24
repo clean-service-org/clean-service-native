@@ -206,6 +206,14 @@ const Account = () => {
         </Text>
       </View>
 
+      <View className="flex-1 p-5">
+        <Button
+          onPress={() => router.replace('/customer/booking/payment-result')}
+        >
+          Go to result
+        </Button>
+      </View>
+
       {isLoading ? (
         <View className="flex-1 justify-center items-center">
           <ActivityIndicator size="large" color="#1A78F2" />
