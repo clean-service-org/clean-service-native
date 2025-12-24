@@ -23,6 +23,7 @@ const EmployeeSignInPage = () => {
     const { returnUrl } = useLocalSearchParams();
     const { login } = useAuth();
 
+
     const handleLogin = async () => {
         // Validate inputs
         if (!phoneNumber.trim()) {
@@ -58,7 +59,20 @@ const EmployeeSignInPage = () => {
 
         setIsLoading(true);
         try {
-            await login(phoneNumber, password, "Employee");
+            const result = await login(phoneNumber, password, 'Helper');
+
+            if (!result.success) {
+                // Show error toast for wrong account type
+                Toast.show({
+                    type: 'error',
+                    text1: 'Login Failed',
+                    text2: result.error || 'An error occurred',
+                    position: 'top',
+                    topOffset: 60,
+                });
+                return;
+            }
+
             // Login successful, show toast and navigate
             Toast.show({
                 type: 'success',
