@@ -15,6 +15,96 @@ export enum BookingStatus {
   cancelled = 4,
 }
 
+export interface Customer {
+  id: string;
+  gender: string | null;
+  fullName: string;
+  identityCard: string | null;
+  address: string | null;
+  phoneNumber: string | null;
+  email: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface HelperUser {
+  id: string;
+  gender: string | null;
+  fullName: string;
+  identityCard: string | null;
+  address: string | null;
+  phoneNumber: string | null;
+  email: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Helper {
+  id: string;
+  experienceDescription: string | null;
+  servicesOffered: string[];
+  hourlyRate: number;
+  averageRating: number;
+  user: HelperUser;
+}
+
+export interface ServiceType {
+  id: string;
+  categoryId: string;
+  name: string;
+  description: string | null;
+  basePrice: number;
+  createdAt: string;
+}
+
+export interface BookingDetails {
+  id: string;
+  bookingId: string;
+  durationPriceId: string;
+  bedroomCount: number;
+  bathroomCount: number;
+  kitchenCount: number;
+  livingRoomCount: number;
+  specialRequirements: string | null;
+  createdAt: string;
+}
+
+export interface Booking {
+  id: string;
+  customerId: string;
+  helperId: string;
+  serviceTypeId: string;
+  location: string;
+  scheduledStartTime: string;
+  scheduledEndTime: string;
+  status: string;
+  cancellationReason: string | null;
+  totalPrice: number;
+  paymentStatus: string;
+  paymentMethod: string;
+  helperRating: number | null;
+  createdAt: string;
+  updatedAt: string;
+  customer: Customer;
+  helper: Helper;
+  serviceType: ServiceType;
+  bookingDetails: BookingDetails;
+  bookingRefunds: any[];
+}
+
+export interface SchedulerResponse {
+  statusCode: number;
+  message: string;
+  data: {
+    totalItems: number;
+    currentPage: number;
+    nextPage: number | null;
+    previousPage: number | null;
+    totalPages: number;
+    results: Booking[];
+  };
+}
+
 export interface UpdateBookingRequestDto {
   status?: BookingStatus;
 
@@ -76,8 +166,21 @@ export async function getBookingById(bookingId: string): Promise<any> {
   return response.json();
 }
 
-export async function acceptTask(bookingId: string): Promise<any> {
-  return updateBookingStatus(bookingId, { status: BookingStatus.confirmed });
+export async function getHelperBookings(helperId: string, page: number = 1, pageSize: number = 10): Promise<SchedulerResponse> {
+  const response = await fetch(`${API_BASE_URL}/scheduler?helperId=${helperId}&page=${page}&pageSize=${pageSize}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: 'Failed to fetch bookings' }));
+    throw new Error(error.message || 'Failed to fetch bookings');
+  }
+
+  return response.json();
 }
 
 export async function startTask(bookingId: string): Promise<any> {
@@ -88,10 +191,7 @@ export async function completeTask(bookingId: string): Promise<any> {
   return updateBookingStatus(bookingId, { status: BookingStatus.completed });
 }
 
-export async function cancelTask(
-  bookingId: string,
-  reason: string,
-): Promise<any> {
+export async function cancelTask(bookingId: string, reason?: string): Promise<any> {
   return updateBookingStatus(bookingId, {
     status: BookingStatus.cancelled,
 

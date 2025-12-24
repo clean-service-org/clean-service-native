@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
 import {
+  ActivityIndicator,
   FlatList,
   ScrollView,
   Text,
@@ -9,93 +10,71 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-interface Task {
-  id: string;
-  title: string;
-  requestedBy: string;
-  description: string;
-  time: string;
-  location: string;
-  price: number;
-  priority: 'low' | 'medium' | 'high';
-  status: 'pending' | 'confirmed' | 'in_progress' | 'completed';
-}
+import { Booking, getHelperBookings } from '../../../app/task/api';
 
 const HomeScreen = () => {
-
   const router = useRouter();
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const [tasks] = useState<Task[]>([
-    {
-      id: '1',
-      title: 'Office Cleaning',
-      requestedBy: 'John Smith',
-      description: 'Deep clean the conference rooms and hallways',
-      time: '09:00 AM - 12:00 PM',
-      location: '456 Business Ave, Suite 200',
-      price: 250,
-      priority: 'high',
-      status: 'confirmed',
-    },
-    {
-      id: '2',
-      title: 'Delivery Task',
-      requestedBy: 'Sarah Johnson',
-      description: 'Pick up and deliver packages to downtown location',
-      time: '01:00 PM - 03:00 PM',
-      location: '123 Main Street, Downtown',
-      price: 175,
-      priority: 'medium',
-      status: 'confirmed',
-    },
-    {
-      id: '3',
-      title: 'Garden Maintenance',
-      requestedBy: 'Mike Williams',
-      description: 'Mow lawn and trim hedges at residential property',
-      time: '10:00 AM - 02:00 PM',
-      location: '789 Oak Drive, Residential Area',
-      price: 120,
-      priority: 'medium',
-      status: 'in_progress',
-    },
-    {
-      id: '4',
-      title: 'Event Setup',
-      requestedBy: 'Lisa Chen',
-      description: 'Set up chairs, tables, and decorations for corporate event',
-      time: '08:00 AM - 11:00 AM',
-      location: '321 Convention Center Way',
-      price: 200,
-      priority: 'high',
-      status: 'confirmed',
-    },
-    {
-      id: '5',
-      title: 'Handyman Services',
-      requestedBy: 'Robert Taylor',
-      description: 'Fix leaky faucet and install shelving units',
-      time: '02:00 PM - 05:00 PM',
-      location: '555 Maple Street, Apt 4B',
-      price: 95,
-      priority: 'low',
-      status: 'completed',
-    },
-  ]);
+  const HELPER_ID = 'user_2uWXLJAoe2kN3l6HLeaJxl94Z6V';
 
-  const [filter, setFilter] = useState<'all' | 'confirmed' | 'in_progress' | 'completed'>(
+  useFocusEffect(
+    useCallback(() => {
+      loadBookings();
+    }, [])
+  );
+
+  const loadBookings = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await getHelperBookings(HELPER_ID);
+      setBookings(response.data.results);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load bookings');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const [filter, setFilter] = useState<'all' | 'Pending' | 'Confirmed' | 'InProgress' | 'Completed' | 'Cancelled'>(
     'all',
   );
 
-  const filteredTasks = tasks.filter((task) => {
+  const mapStatus = (status: string): string => {
+    const statusMap: { [key: string]: string } = {
+      'Pending': 'pending',
+      'Confirmed': 'confirmed',
+      'InProgress': 'in_progress',
+      'Completed': 'completed',
+      'Cancelled': 'cancelled',
+    };
+    return statusMap[status] || status.toLowerCase();
+  };
+
+  const filteredBookings = bookings.filter((booking) => {
     if (filter === 'all') return true;
-    return task.status === filter;
+    return booking.status === filter;
   });
 
-  const confirmedCount = tasks.filter((t) => t.status === 'confirmed').length;
-  const inProgressCount = tasks.filter((t) => t.status === 'in_progress').length;
-  const completedCount = tasks.filter((t) => t.status === 'completed').length;
+  const confirmedCount = bookings.filter((b) => b.status === 'Confirmed').length;
+  const inProgressCount = bookings.filter((b) => b.status === 'InProgress').length;
+  const completedCount = bookings.filter((b) => b.status === 'Completed').length;
+
+  const formatTime = (start: string, end: string) => {
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    const formatHour = (date: Date) => {
+      const hours = date.getHours();
+      const minutes = date.getMinutes();
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      const hour12 = hours % 12 || 12;
+      return `${hour12.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+    };
+    return `${formatHour(startDate)} - ${formatHour(endDate)}`;
+  };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -160,157 +139,178 @@ const HomeScreen = () => {
         </Text>
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        className="flex-grow-0 h-fit min-h-14 pb-4 mb-4 px-4 flex gap-2"
-      >
-        <TouchableOpacity
-          onPress={() => setFilter('all')}
-          style={{
-            backgroundColor: filter === 'all' ? '#3B82F6' : '#F3F4F6',
-          }}
-          className="w-fit h-10 px-2 flex justify-center items-center rounded-lg mr-2"
-        >
-          <Text
-            style={{
-              fontSize: 14,
-              fontWeight: '600',
-              color: filter === 'all' ? '#FFFFFF' : '#6B7280',
-            }}
-          >
-            All ({tasks.length})
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => setFilter('in_progress')}
-          style={{
-            backgroundColor: filter === 'in_progress' ? '#3B82F6' : '#F3F4F6',
-          }}
-          className="w-fit h-10 px-2 flex justify-center items-center rounded-lg mr-2"
-        >
-          <Text
-            style={{
-              fontSize: 14,
-              fontWeight: '600',
-              color: filter === 'in_progress' ? '#FFFFFF' : '#6B7280',
-            }}
-          >
-            In Progress ({inProgressCount})
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          onPress={() => setFilter('confirmed')}
-          style={{
-            backgroundColor: filter === 'confirmed' ? '#3B82F6' : '#F3F4F6',
-          }}
-          className="w-fit h-10 px-2 flex justify-center items-center rounded-lg mr-2"
-        >
-          <Text
-            style={{
-              fontSize: 14,
-              fontWeight: '600',
-              color: filter === 'confirmed' ? '#FFFFFF' : '#6B7280',
-            }}
-          >
-            Confirmed ({confirmedCount})
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => setFilter('completed')}
-          style={{
-            backgroundColor: filter === 'completed' ? '#3B82F6' : '#F3F4F6',
-          }}
-          className="w-fit h-10 px-2 flex justify-center items-center rounded-lg"
-        >
-          <Text
-            style={{
-              fontSize: 14,
-              fontWeight: '600',
-              color: filter === 'completed' ? '#FFFFFF' : '#6B7280',
-            }}
-          >
-            Completed ({completedCount})
-          </Text>
-        </TouchableOpacity>
-      </ScrollView>
-
-      <FlatList
-        data={filteredTasks}
-        keyExtractor={(item) => item.id}
-        className="px-6"
-        contentContainerStyle={{ paddingBottom: 100 }}
-        renderItem={({ item }) => (
+      {isLoading ? (
+        <View className="flex-1 justify-center items-center">
+          <ActivityIndicator size="large" color="#3B82F6" />
+          <Text className="text-gray-600 mt-4">Loading bookings...</Text>
+        </View>
+      ) : error ? (
+        <View className="flex-1 justify-center items-center px-6">
+          <Ionicons name="alert-circle" size={48} color="#EF4444" />
+          <Text className="text-red-600 font-semibold text-lg mt-4">Error</Text>
+          <Text className="text-gray-600 text-center mt-2">{error}</Text>
           <TouchableOpacity
-            onPress={() => router.push(`/task/${item.id}/info`)}
-            className="bg-white rounded-xl p-4 mb-3 border border-gray-200 shadow-sm"
+            onPress={loadBookings}
+            className="mt-4 bg-blue-600 px-6 py-3 rounded-lg"
           >
-            <View className="flex-row justify-between items-start mb-3">
-              <View className="flex-1 mr-3">
-                <Text className="text-lg font-bold text-gray-900 mb-2">
-                  {item.title}
+            <Text className="text-white font-semibold">Retry</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            className="flex-grow-0 h-fit min-h-14 pb-4 mb-4 px-4 flex gap-2"
+          >
+            <TouchableOpacity
+              onPress={() => setFilter('all')}
+              style={{
+                backgroundColor: filter === 'all' ? '#3B82F6' : '#F3F4F6',
+              }}
+              className="w-fit h-10 px-2 flex justify-center items-center rounded-lg mr-2"
+            >
+              <Text
+                style={{
+                  fontSize: 14,
+                  fontWeight: '600',
+                  color: filter === 'all' ? '#FFFFFF' : '#6B7280',
+                }}
+              >
+                All ({bookings.length})
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setFilter('InProgress')}
+              style={{
+                backgroundColor: filter === 'InProgress' ? '#3B82F6' : '#F3F4F6',
+              }}
+              className="w-fit h-10 px-2 flex justify-center items-center rounded-lg mr-2"
+            >
+              <Text
+                style={{
+                  fontSize: 14,
+                  fontWeight: '600',
+                  color: filter === 'InProgress' ? '#FFFFFF' : '#6B7280',
+                }}
+              >
+                In Progress ({inProgressCount})
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              onPress={() => setFilter('Confirmed')}
+              style={{
+                backgroundColor: filter === 'Confirmed' ? '#3B82F6' : '#F3F4F6',
+              }}
+              className="w-fit h-10 px-2 flex justify-center items-center rounded-lg mr-2"
+            >
+              <Text
+                style={{
+                  fontSize: 14,
+                  fontWeight: '600',
+                  color: filter === 'Confirmed' ? '#FFFFFF' : '#6B7280',
+                }}
+              >
+                Confirmed ({confirmedCount})
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setFilter('Completed')}
+              style={{
+                backgroundColor: filter === 'Completed' ? '#3B82F6' : '#F3F4F6',
+              }}
+              className="w-fit h-10 px-2 flex justify-center items-center rounded-lg"
+            >
+              <Text
+                style={{
+                  fontSize: 14,
+                  fontWeight: '600',
+                  color: filter === 'Completed' ? '#FFFFFF' : '#6B7280',
+                }}
+              >
+                Completed ({completedCount})
+              </Text>
+            </TouchableOpacity>
+          </ScrollView>
+
+          <FlatList
+            data={filteredBookings}
+            keyExtractor={(item) => item.id}
+            className="px-6"
+            contentContainerStyle={{ paddingBottom: 100 }}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                onPress={() => router.push(`/task/${item.id}/info`)}
+                className="bg-white rounded-xl p-4 mb-3 border border-gray-200 shadow-sm"
+              >
+                <View className="flex-row justify-between items-start mb-3">
+                  <View className="flex-1 mr-3">
+                    <Text className="text-lg font-bold text-gray-900 mb-2">
+                      {item.serviceType.name}
+                    </Text>
+                    <View className="flex-row items-center gap-2 mb-2">
+                      <View className={`px-2 py-1 rounded-full ${getStatusColor(mapStatus(item.status))}`}>
+                        <Text className={`text-xs font-semibold ${getStatusColor(mapStatus(item.status))}`}>
+                          {getStatusLabel(mapStatus(item.status))}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                  <Text className="text-xl font-bold text-green-600">
+                    ${item.totalPrice.toFixed(0)}
+                  </Text>
+                </View>
+
+                <Text className="text-sm text-gray-600 mb-3 leading-5">
+                  {item.serviceType.description || 'No description available'}
                 </Text>
-                <View className="flex-row items-center gap-2 mb-2">
-                  <View className={`px-2 py-1 rounded-full ${getStatusColor(item.status)}`}>
-                    <Text className={`text-xs font-semibold ${getStatusColor(item.status)}`}>
-                      {getStatusLabel(item.status)}
+
+                <View className="space-y-2 mb-3">
+                  <View className="flex-row items-center">
+                    <Ionicons name="time-outline" size={16} color="#6B7280" />
+                    <Text className="ml-2 text-sm text-gray-700 font-medium">
+                      {formatTime(item.scheduledStartTime, item.scheduledEndTime)}
+                    </Text>
+                  </View>
+                  <View className="flex-row items-start">
+                    <Ionicons name="location-outline" size={16} color="#6B7280" />
+                    <Text className="ml-2 text-sm text-gray-700 font-medium flex-1">
+                      {item.location}
+                    </Text>
+                  </View>
+                  <View className="flex-row items-center">
+                    <Ionicons name="person-outline" size={16} color="#6B7280" />
+                    <Text className="ml-2 text-sm text-gray-700 font-medium">
+                      {item.customer.fullName}
                     </Text>
                   </View>
                 </View>
-              </View>
-              <Text className="text-xl font-bold text-green-600">
-                ${item.price}
-              </Text>
-            </View>
 
-            <Text className="text-sm text-gray-600 mb-3 leading-5">
-              {item.description}
-            </Text>
-
-            <View className="space-y-2 mb-3">
-              <View className="flex-row items-center">
-                <Ionicons name="time-outline" size={16} color="#6B7280" />
-                <Text className="ml-2 text-sm text-gray-700 font-medium">
-                  {item.time}
+                <View className="flex-row items-center justify-end pt-2 border-t border-gray-100">
+                  <Text className="text-sm text-blue-600 font-semibold mr-1">
+                    View Details
+                  </Text>
+                  <Ionicons name="chevron-forward" size={16} color="#2563EB" />
+                </View>
+              </TouchableOpacity>
+            )}
+            ListEmptyComponent={
+              <View className="items-center py-10">
+                <Ionicons name="briefcase-outline" size={48} color="#D1D5DB" />
+                <Text className="text-base font-semibold text-gray-600 mt-3">
+                  No bookings found
+                </Text>
+                <Text className="text-sm text-gray-400 mt-1">
+                  Bookings matching this filter will appear here
                 </Text>
               </View>
-              <View className="flex-row items-start">
-                <Ionicons name="location-outline" size={16} color="#6B7280" />
-                <Text className="ml-2 text-sm text-gray-700 font-medium flex-1">
-                  {item.location}
-                </Text>
-              </View>
-              <View className="flex-row items-center">
-                <Ionicons name="person-outline" size={16} color="#6B7280" />
-                <Text className="ml-2 text-sm text-gray-700 font-medium">
-                  {item.requestedBy}
-                </Text>
-              </View>
-            </View>
-
-            <View className="flex-row items-center justify-end pt-2 border-t border-gray-100">
-              <Text className="text-sm text-blue-600 font-semibold mr-1">
-                View Details
-              </Text>
-              <Ionicons name="chevron-forward" size={16} color="#2563EB" />
-            </View>
-          </TouchableOpacity>
-        )}
-        ListEmptyComponent={
-          <View className="items-center py-10">
-            <Ionicons name="briefcase-outline" size={48} color="#D1D5DB" />
-            <Text className="text-base font-semibold text-gray-600 mt-3">
-              No tasks found
-            </Text>
-            <Text className="text-sm text-gray-400 mt-1">
-              Tasks matching this filter will appear here
-            </Text>
-          </View>
-        }
-      />
+            }
+          />
+        </>
+      )}
     </SafeAreaView>
   );
 };
