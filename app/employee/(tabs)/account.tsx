@@ -101,7 +101,7 @@ const Account = () => {
                         textClassName="text-[#1A78F1]"
                         onPress={() => router.push('/employee/signup')}
                     >
-                        Create Account
+                        Join Us
                     </Button>
                 </View>
             </SafeAreaView>

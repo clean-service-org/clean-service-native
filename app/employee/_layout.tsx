@@ -38,7 +38,7 @@ export default function SignUpLayout() {
       <Stack.Screen
         name="signup/index"
         options={{
-          title: 'Register',
+          title: 'Join Us',
           headerTitleStyle: { fontWeight: 'bold', fontSize: 20 },
         }}
       />
