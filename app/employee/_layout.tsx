@@ -64,6 +64,13 @@ export default function SignUpLayout() {
           headerBackground: undefined,
         }}
       />
+      <Stack.Screen
+        name="(tabs)"
+        options={{
+          headerShown: false,
+          headerBackground: undefined,
+        }}
+      />
     </Stack>
   );
 }

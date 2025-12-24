@@ -1,20 +1,20 @@
-import { Link, useRouter } from 'expo-router';
 import * as Linking from 'expo-linking';
+import { Link, useRouter } from 'expo-router';
+import { useEffect } from 'react';
 import { Text, View } from 'react-native';
 import Button from '../components/Button';
 import InputWithLabel from '../components/Input';
-import { useEffect } from 'react';
 
 export default function Index() {
-    const url = Linking.useLinkingURL();
-    const router = useRouter();
+  const url = Linking.useLinkingURL();
+  const router = useRouter();
 
-    useEffect(() => {
+  useEffect(() => {
     if (url) {
       // Parse the URL
       const { hostname, path, queryParams } = Linking.parse(url);
       console.log('Deep link data:', { hostname, path, queryParams });
-      
+
       // Navigate to appropriate screen
       // navigation.navigate(path, queryParams);
     }
@@ -34,7 +34,7 @@ export default function Index() {
       <Link href="/customer/(auth)/verify">
         <Text className="text-blue-500">Go to Verify</Text>
       </Link>
-      <Link href="/employee/home">
+      <Link href="/employee/(tabs)">
         <Text className="text-blue-500">Go to Employee Home</Text>
       </Link>
       <Link href="/task/1/info">
