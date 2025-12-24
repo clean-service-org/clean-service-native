@@ -9,7 +9,7 @@ import React, {
 
 interface UserData {
   userId: string;
-  userType: 'Customer' | 'Employee';
+  userType: 'Customer' | 'Helper';
   accessToken: string;
   refreshToken: string;
 }
@@ -27,7 +27,7 @@ interface AuthContextType {
   login: (
     phoneNumber: string,
     password: string,
-    expectedUserType: 'Customer' | 'Employee',
+    expectedUserType: 'Customer' | 'Helper',
   ) => Promise<LoginResult>;
   logout: () => Promise<void>;
   setUserData: (data: UserData | null) => void;
@@ -68,7 +68,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const login = async (
     phoneNumber: string,
     password: string,
-    expectedUserType: 'Customer' | 'Employee',
+    expectedUserType: 'Customer' | 'Helper',
   ) => {
     try {
       const response = await fetch(
