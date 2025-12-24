@@ -65,6 +65,9 @@ export const API_ENDPOINTS = {
     byCustomerId: (customerId: string) =>
       `/booking/feedback?customerId=${customerId}`,
   },
+  payment: {
+    cancelPayment: '/payment/cancel',
+  }
 };
 
 // Helper function to construct full URL

@@ -2,16 +2,68 @@ import Button from '@/components/Button';
 
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
 
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { API_ENDPOINTS, apiCall } from '@/config/api';
+
+import { useAuth } from '@/contexts/AuthContext';
+
 export default function PaymentResultScreen() {
   const router = useRouter();
 
-  const { status } = useLocalSearchParams<{ status: string }>();
+  const { userData } = useAuth();
+
+  const { status, apptransid } = useLocalSearchParams<{
+    status: string;
+
+    apptransid: string;
+  }>();
+
+  const [isCancelling, setIsCancelling] = useState(false);
+
+  useEffect(() => {
+    // Cancel booking if status is 2 (failed) and apptransid exists
+
+    if (status !== '1' && status !== '3' && apptransid) {
+      cancelBooking();
+    }
+  }, [status, apptransid]);
+
+  const cancelBooking = async () => {
+    try {
+      if (!userData?.accessToken) {
+        return;
+      }
+      
+      setIsCancelling(true);
+
+      // Extract orderId from apptransid (format: prefix_orderId_timestamp)
+
+      const orderId = parseInt(apptransid.split('_')[1]);
+      
+      console.log('Cancelling booking with orderId:', orderId);
+
+      if (!isNaN(orderId)) {
+        await apiCall(`${API_ENDPOINTS.payment.cancelPayment}/${orderId}`, {
+          method: 'PATCH',
+
+          headers: {
+            Authorization: `Bearer ${userData.accessToken}`,
+          },
+        });
+
+        console.log('Booking cancelled successfully');
+      }
+    } catch (error) {
+      console.error('Failed to cancel booking:', error);
+    } finally {
+      setIsCancelling(false);
+    }
+  };
 
   const handleGoToHome = () => {
     router.push('/customer/(tabs)');
@@ -22,11 +74,7 @@ export default function PaymentResultScreen() {
   };
 
   const handleTryAgain = () => {
-    router.back();
-  };
-
-  const handleContactSupport = () => {
-    router.push('/customer/(tabs)/message');
+    router.push('/customer/(tabs)');
   };
 
   // Status: 1 = Success, 2 = Failed, 3 = Processing
@@ -176,15 +224,6 @@ export default function PaymentResultScreen() {
               </Button>
 
               <TouchableOpacity
-                onPress={handleContactSupport}
-                className="w-full py-4 border border-[#1A78F2] rounded-lg"
-              >
-                <Text className="text-center text-[#1A78F2] font-semibold">
-                  Contact Support
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
                 onPress={handleGoToHome}
                 className="w-full py-4"
               >
@@ -258,16 +297,6 @@ export default function PaymentResultScreen() {
 
             {/* Action Button */}
 
-            <View className="w-full space-y-3">
-              <TouchableOpacity
-                onPress={handleContactSupport}
-                className="w-full py-4 border border-[#1A78F2] rounded-lg"
-              >
-                <Text className="text-center text-[#1A78F2] font-semibold">
-                  Contact Support
-                </Text>
-              </TouchableOpacity>
-            </View>
           </>
         );
 
@@ -276,29 +305,83 @@ export default function PaymentResultScreen() {
 
         return (
           <>
-            <View className="w-24 h-24 rounded-full bg-gray-100 justify-center items-center mb-6">
-              <Text className="text-gray-500 text-4xl font-bold">?</Text>
+            {/* Fail Icon */}
+
+            <View className="w-24 h-24 rounded-full bg-red-100 justify-center items-center mb-6">
+              <View className="w-16 h-16 rounded-full bg-red-500 justify-center items-center">
+                <Text className="text-white text-4xl font-bold">✕</Text>
+              </View>
             </View>
 
+            {/* Fail Message */}
+
             <Text className="text-2xl font-bold text-gray-900 mb-3 text-center">
-              Invalid Payment Status
+              Payment Failed
             </Text>
 
             <Text className="text-base text-gray-600 text-center mb-8 px-4">
-              We couldn't determine your payment status. Please check your
-              bookings or contact support.
+              We couldn't process your payment. Please check your payment method
+              and try again.
             </Text>
 
+            {/* Error Details Card */}
+
+            <View className="w-full bg-gray-50 rounded-lg p-4 mb-4">
+              <Text className="text-sm text-gray-500 mb-2">
+                Transaction Details
+              </Text>
+
+              <View className="flex-row justify-between mb-2">
+                <Text className="text-gray-700">Status</Text>
+
+                <Text className="text-red-600 font-semibold">Failed</Text>
+              </View>
+
+              <View className="flex-row justify-between">
+                <Text className="text-gray-700">Reason</Text>
+
+                <Text className="text-gray-900 font-medium">
+                  Payment Declined
+                </Text>
+              </View>
+            </View>
+
+            {/* Common Issues */}
+
+            <View className="w-full bg-blue-50 rounded-lg p-4 mb-8">
+              <Text className="text-sm font-semibold text-gray-900 mb-2">
+                Common Issues:
+              </Text>
+
+              <Text className="text-sm text-gray-700 mb-1">
+                • Insufficient funds
+              </Text>
+
+              <Text className="text-sm text-gray-700 mb-1">
+                • Incorrect card details
+              </Text>
+
+              <Text className="text-sm text-gray-700 mb-1">
+                • Network connection issues
+              </Text>
+
+              <Text className="text-sm text-gray-700">
+                • Card expired or blocked
+              </Text>
+            </View>
+
+            {/* Action Buttons */}
+
             <View className="w-full space-y-3">
-              <Button onPress={handleViewBooking} className="w-full">
-                View My Bookings
+              <Button onPress={handleTryAgain} className="w-full">
+                Try Again
               </Button>
 
               <TouchableOpacity
                 onPress={handleGoToHome}
-                className="w-full py-4 border border-[#1A78F2] rounded-lg"
+                className="w-full py-4"
               >
-                <Text className="text-center text-[#1A78F2] font-semibold">
+                <Text className="text-center text-gray-600 font-medium">
                   Back to Home
                 </Text>
               </TouchableOpacity>
