@@ -1,45 +1,48 @@
+import { useAuth } from '@/contexts/AuthContext';
 import * as Linking from 'expo-linking';
-import { Link, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
-import { Text, View } from 'react-native';
-import Button from '../components/Button';
-import InputWithLabel from '../components/Input';
+import { ActivityIndicator, View } from 'react-native';
 
 export default function Index() {
   const url = Linking.useLinkingURL();
   const router = useRouter();
+  const { userData, isAuthenticated, isLoading } = useAuth();
 
   useEffect(() => {
     if (url) {
-      // Parse the URL
+      // Parse the URL for deep linking
       const { hostname, path, queryParams } = Linking.parse(url);
       console.log('Deep link data:', { hostname, path, queryParams });
-
-      // Navigate to appropriate screen
-      // navigation.navigate(path, queryParams);
     }
   }, [url]);
 
+  useEffect(() => {
+    // Wait for auth to load
+    if (isLoading) return;
+
+    // Route based on auth state
+    if (!isAuthenticated) {
+      // Not logged in -> Customer index (guest mode)
+      router.replace('/customer/(tabs)');
+    } else {
+      // Logged in -> Check userType
+      if (userData?.userType === 'Customer') {
+        router.replace('/customer/(tabs)');
+      } else if (userData?.userType === 'Employee') {
+        router.replace('/employee/home');
+      } else {
+        // Fallback to customer
+        router.replace('/customer/(tabs)');
+      }
+    }
+  }, [isAuthenticated, isLoading, userData?.userType]);
+
+  // Show loading screen while checking auth
   return (
-    <View className="flex-1 justify-center items-center">
-      <Text className="text-5xl text-light-100 font-bold">
-        NativeWind has been setup!.
-      </Text>
-      <Button onPress={() => alert('Button Pressed!')}>Custom Button</Button>
-      <Button onPress={() => router.navigate('/employee/onboarding')}>Custom Button</Button>
-      <InputWithLabel placeholder="Enter text" label="paso peso" />
-      <Link href="/customer/(tabs)">
-        <Text className="text-blue-500">Go to Home</Text>
-      </Link>
-      <Link href="/customer/(auth)/verify">
-        <Text className="text-blue-500">Go to Verify</Text>
-      </Link>
-      <Link href="/employee/(tabs)">
-        <Text className="text-blue-500">Go to Employee Home</Text>
-      </Link>
-      <Link href="/task/1/info">
-        <Text className="text-blue-500">Go to Task Info</Text>
-      </Link>
+    <View className="flex-1 justify-center items-center bg-white">
+      <ActivityIndicator size="large" color="#1A78F2" />
     </View>
   );
 }
+
