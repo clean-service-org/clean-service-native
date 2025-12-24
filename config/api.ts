@@ -38,6 +38,9 @@ export const API_ENDPOINTS = {
     all: (page: number = 1, limit: number = 10) =>
       `/manage/feedbacks?page=${page}&limit=${limit}`,
   },
+  payment: {
+    cancelPayment: '/payment/cancel',
+  }
 };
 
 // Helper function to construct full URL
