@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 
 const LoginScreen = () => {
@@ -103,7 +104,7 @@ const LoginScreen = () => {
   };
 
   return (
-    <View className="flex-1 bg-white px-6 pt-8">
+    <SafeAreaView className="flex-1 bg-white px-6 pt-8">
       {/* Logo */}
       <View className="flex-col justify-center items-center mb-8 gap-2">
         <Logo width={113.65} height={45} />
@@ -123,12 +124,14 @@ const LoginScreen = () => {
         <Text className="text-sm font-semibold text-gray-700 mb-2">
           Phone number
         </Text>
-        <View className="flex-row items-center border border-gray-300 rounded-xl px-4 py-3 h-14">
+        <View className="flex-row items-center border border-gray-300 rounded-xl px-4 h-14">
           <TextInput
             placeholder="Enter your phone number"
             placeholderTextColor="#9CA3AF"
             keyboardType="number-pad"
             className="flex-1 text-gray-700"
+            style={{ color: '#374151' }}
+            textAlignVertical="center"
             value={phoneNumber}
             onChangeText={setPhoneNumber}
             editable={!isLoading}
@@ -141,13 +144,15 @@ const LoginScreen = () => {
         <Text className="text-sm font-semibold text-gray-700 mb-2">
           Password
         </Text>
-        <View className="flex-row items-center border border-gray-300 rounded-xl px-3 py-2.5 h-14">
+        <View className="flex-row justify-center items-center border border-gray-300 rounded-xl px-3 h-14">
           <TextInput
             key={showPassword ? 'visible' : 'hidden'}
             placeholder="Enter your password"
             placeholderTextColor="#9CA3AF"
             secureTextEntry={!showPassword}
-            className="flex-1 text-gray-700"
+            className="flex-1 text-gray-700 h-fit"
+            style={{ color: '#374151' }}
+            textAlignVertical="center"
             value={password}
             onChangeText={setPassword}
             editable={!isLoading}
@@ -190,7 +195,7 @@ const LoginScreen = () => {
           </Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 

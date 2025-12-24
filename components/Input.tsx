@@ -53,7 +53,7 @@ const InputWithLabel: React.FC<Props> = ({
         onChangeText={onChangeText}
         multiline={multiline}
         numberOfLines={numberOfLines}
-        style={[multiline && { textAlignVertical: 'top' }, style]}
+        style={[{ textAlignVertical: multiline ? 'top' : 'center' }, style]}
         {...restProps}
       />
 
