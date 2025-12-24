@@ -55,6 +55,8 @@ const Activity = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<SchedulerBooking | null>(null);
+  const [selectedBookingForFeedback, setSelectedBookingForFeedback] =
+    useState<SchedulerBooking | null>(null);
   const [feedbacksMap, setFeedbacksMap] = useState<
     Map<string, CustomerFeedback>
   >(new Map());
@@ -173,8 +175,8 @@ const Activity = () => {
   const openFeedbackModal = useCallback(() => {
     if (!selected) return;
 
-    // Close details sheet first
-    closeBottomSheet();
+    // Save the booking for feedback before closing details sheet
+    setSelectedBookingForFeedback(selected);
 
     // Check if feedback exists for this booking
     const existingFeedback = feedbacksMap.get(selected.id);
@@ -193,6 +195,9 @@ const Activity = () => {
       setFeedbackRating(0);
     }
 
+    // Close details sheet
+    closeBottomSheet();
+
     // Open feedback sheet after a short delay
     setTimeout(() => {
       feedbackSheetRef.current?.expand();
@@ -206,30 +211,47 @@ const Activity = () => {
     setFeedbackTitle('');
     setFeedbackDescription('');
     setFeedbackRating(0);
+    setSelectedBookingForFeedback(null);
   }, []);
 
   // Submit feedback
   const submitFeedback = async () => {
-    if (!selected) return;
+    console.log('=== Submit Feedback Called ===');
+    console.log(
+      'Selected booking for feedback:',
+      selectedBookingForFeedback?.id,
+    );
+    console.log('Rating:', feedbackRating);
+    console.log('Title:', feedbackTitle);
+    console.log('Description:', feedbackDescription);
+
+    if (!selectedBookingForFeedback) {
+      console.log('ERROR: No selected booking for feedback');
+      return;
+    }
 
     // Validation
     if (feedbackRating === 0) {
+      console.log('Validation failed: No rating');
       Alert.alert('Validation Error', 'Please select a rating');
       return;
     }
 
     if (!feedbackTitle.trim()) {
+      console.log('Validation failed: No title');
       Alert.alert('Validation Error', 'Please enter a title');
       return;
     }
 
     if (!feedbackDescription.trim()) {
+      console.log('Validation failed: No description');
       Alert.alert('Validation Error', 'Please enter a description');
       return;
     }
 
     try {
       setSubmittingFeedback(true);
+      console.log('Sending feedback to API...');
 
       const response = await apiCall(API_ENDPOINTS.feedback.create, {
         method: 'POST',
@@ -237,7 +259,7 @@ const Activity = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          bookingId: selected.id,
+          bookingId: selectedBookingForFeedback.id,
           title: feedbackTitle.trim(),
           description: feedbackDescription.trim(),
           rating: feedbackRating,
